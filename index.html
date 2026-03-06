@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Commission Calculator</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>Commission Calculator</h1>
+      <p class="subtitle">Level 1 starter app for real estate agents.</p>
+
+      <form id="calculator-form">
+        <label for="sale-price">Sale Price ($)</label>
+        <input
+          id="sale-price"
+          name="salePrice"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="e.g. 450000"
+          required
+        />
+
+        <label for="commission-rate">Commission Rate (%)</label>
+        <input
+          id="commission-rate"
+          name="commissionRate"
+          type="number"
+          min="0"
+          step="0.01"
+          value="3"
+          required
+        />
+
+        <label for="broker-split">Broker Split (%)</label>
+        <input
+          id="broker-split"
+          name="brokerSplit"
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          value="30"
+          required
+        />
+
+        <button type="submit">Calculate</button>
+      </form>
+
+      <section class="results" aria-live="polite">
+        <h2>Results</h2>
+        <p>Agent Commission: <strong id="agent-commission">$0.00</strong></p>
+        <p>Broker Split: <strong id="broker-amount">$0.00</strong></p>
+        <p>Net Income: <strong id="net-income">$0.00</strong></p>
+        <button id="download-pdf" type="button" disabled>Download PDF</button>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

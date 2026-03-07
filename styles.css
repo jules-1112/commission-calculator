@@ -13,7 +13,7 @@ body {
 }
 
 .card {
-  width: min(92vw, 420px);
+  width: min(96vw, 1120px);
   background: #ffffff;
   border-radius: 12px;
   padding: 24px;
@@ -40,11 +40,14 @@ label {
   font-size: 0.95rem;
 }
 
-input {
+input,
+select {
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 1rem;
+  background: #ffffff;
+  color: #1f2937;
 }
 
 button {
@@ -74,9 +77,15 @@ button:hover {
   font-size: 1.1rem;
 }
 
+.actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 #download-pdf {
   width: 100%;
-  margin-top: 12px;
+  margin-top: 0;
   background: #0f766e;
 }
 
@@ -87,4 +96,127 @@ button:hover {
 #download-pdf:disabled {
   background: #9ca3af;
   cursor: not-allowed;
+}
+
+#view-page-2 {
+  width: 100%;
+  margin-top: 0;
+  background: #334155;
+}
+
+#view-page-2:hover {
+  background: #1e293b;
+}
+
+.tier-guide {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.tier-guide h2 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.tier-matrix {
+  display: grid;
+  grid-template-columns: 240px minmax(560px, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.tier-row-labels {
+  display: grid;
+  grid-template-rows: 52px 52px 52px 86px 86px;
+  align-items: stretch;
+}
+
+.tier-row-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: right;
+  padding-right: 10px;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.tier-row-spacer {
+  visibility: hidden;
+}
+
+.tier-table-wrap {
+  overflow-x: auto;
+}
+
+.tier-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  table-layout: fixed;
+}
+
+.tier-table th,
+.tier-table td {
+  border: 2px solid #111111;
+  text-align: center;
+  padding: 8px 5px;
+  color: #111111;
+  font-size: 1.15rem;
+}
+
+.tier-table th {
+  height: 52px;
+  font-weight: 700;
+}
+
+.tier-table tbody tr:nth-child(1) td,
+.tier-table tbody tr:nth-child(2) td {
+  height: 52px;
+}
+
+.tier-table tbody tr:nth-child(3) td,
+.tier-table tbody tr:nth-child(4) td {
+  height: 86px;
+}
+
+.split-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+}
+
+.tier-bronze {
+  background: #cb8335;
+}
+
+.tier-silver {
+  background: #b6b6b8;
+}
+
+.tier-gold {
+  background: #f6d800;
+}
+
+.tier-platinum {
+  background: #d4d4d4;
+}
+
+.tier-diamond {
+  background: #9ccfdd;
+}
+
+.tier-guide-landscape {
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 1024px) {
+  .tier-matrix {
+    min-width: 860px;
+  }
 }

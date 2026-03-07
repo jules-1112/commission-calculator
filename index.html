@@ -46,6 +46,17 @@
           required
         />
 
+        <label for="closings-per-quarter">Closings Per Quarter</label>
+        <input
+          id="closings-per-quarter"
+          name="closingsPerQuarter"
+          type="number"
+          min="0"
+          step="1"
+          value="3"
+          required
+        />
+
         <button type="submit">Calculate</button>
       </form>
 
@@ -54,7 +65,19 @@
         <p>Agent Commission: <strong id="agent-commission">$0.00</strong></p>
         <p>Broker Split: <strong id="broker-amount">$0.00</strong></p>
         <p>Net Income: <strong id="net-income">$0.00</strong></p>
-        <button id="download-pdf" type="button" disabled>Download PDF</button>
+        <p>Tier Level: <strong id="tier-level-result">Bronze</strong></p>
+        <p>Team Split Adjustment: <strong id="team-split-adjustment">$0.00</strong></p>
+        <p>Personal Sphere Adjustment: <strong id="personal-sphere-adjustment">$0.00</strong></p>
+
+        <div class="actions">
+          <button id="download-pdf" type="button" disabled>Download PDF</button>
+          <button id="view-page-2" type="button">Page 2: Tier Guide</button>
+        </div>
+      </section>
+
+      <section id="tier-guide" class="tier-guide" hidden>
+        <h2>Page 2: Quarterly Tier Split Guide</h2>
+        <div id="tier-guide-list"></div>
       </section>
     </main>
 

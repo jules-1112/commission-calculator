@@ -30,6 +30,26 @@ h1 {
   color: #6b7280;
 }
 
+.top-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nav-button {
+  margin-top: 0;
+  background: #475569;
+}
+
+.nav-button:hover {
+  background: #334155;
+}
+
+.nav-button.active {
+  background: #2563eb;
+}
+
 form {
   display: grid;
   gap: 10px;
@@ -89,13 +109,21 @@ button:hover {
   background: #0f766e;
 }
 
-#download-pdf:hover {
+#download-pdf:hover,
+#download-mortgage-pdf:hover {
   background: #0d615a;
 }
 
-#download-pdf:disabled {
+#download-pdf:disabled,
+#download-mortgage-pdf:disabled {
   background: #9ca3af;
   cursor: not-allowed;
+}
+
+#download-mortgage-pdf {
+  width: 100%;
+  margin-top: 0;
+  background: #0f766e;
 }
 
 #view-page-2 {
@@ -213,6 +241,21 @@ button:hover {
 .tier-guide-landscape {
   width: 100%;
   overflow-x: auto;
+}
+
+.mortgage-calculator {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.mortgage-calculator h2 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.mortgage-calculator h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
 }
 
 @media (max-width: 1024px) {

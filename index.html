@@ -8,76 +8,135 @@
   </head>
   <body>
     <main class="card">
-      <h1>Commission Calculator</h1>
-      <p class="subtitle">Level 1 starter app for real estate agents.</p>
+      <div class="top-nav">
+        <button id="show-commission-page" class="nav-button active" type="button">
+          Commission Calculator
+        </button>
+        <button id="show-mortgage-page" class="nav-button" type="button">
+          Mortgage Payment Calculator
+        </button>
+      </div>
 
-      <form id="calculator-form">
-        <label for="sale-price">Sale Price ($)</label>
-        <input
-          id="sale-price"
-          name="salePrice"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="e.g. 450000"
-          required
-        />
+      <section id="commission-page">
+        <h1>Commission Calculator</h1>
+        <p class="subtitle">Level 1 starter app for real estate agents.</p>
 
-        <label for="commission-rate">Commission Rate (%)</label>
-        <input
-          id="commission-rate"
-          name="commissionRate"
-          type="number"
-          min="0"
-          step="0.01"
-          value="3"
-          required
-        />
+        <form id="calculator-form">
+          <label for="sale-price">Sale Price ($)</label>
+          <input
+            id="sale-price"
+            name="salePrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 450000"
+            required
+          />
 
-        <label for="broker-split">Broker Split (%)</label>
-        <input
-          id="broker-split"
-          name="brokerSplit"
-          type="number"
-          min="0"
-          max="100"
-          step="0.01"
-          value="30"
-          required
-        />
+          <label for="commission-rate">Commission Rate (%)</label>
+          <input
+            id="commission-rate"
+            name="commissionRate"
+            type="number"
+            min="0"
+            step="0.01"
+            value="3"
+            required
+          />
 
-        <label for="closings-per-quarter">Closings Per Quarter</label>
-        <input
-          id="closings-per-quarter"
-          name="closingsPerQuarter"
-          type="number"
-          min="0"
-          step="1"
-          value="3"
-          required
-        />
+          <label for="broker-split">Broker Split (%)</label>
+          <input
+            id="broker-split"
+            name="brokerSplit"
+            type="number"
+            min="0"
+            max="100"
+            step="0.01"
+            value="30"
+            required
+          />
 
-        <button type="submit">Calculate</button>
-      </form>
+          <label for="closings-per-quarter">Closings Per Quarter</label>
+          <input
+            id="closings-per-quarter"
+            name="closingsPerQuarter"
+            type="number"
+            min="0"
+            step="1"
+            value="3"
+            required
+          />
 
-      <section class="results" aria-live="polite">
-        <h2>Results</h2>
-        <p>Agent Commission: <strong id="agent-commission">$0.00</strong></p>
-        <p>Broker Split: <strong id="broker-amount">$0.00</strong></p>
-        <p>Net Income: <strong id="net-income">$0.00</strong></p>
-        <p>Tier Level: <strong id="tier-level-result">Bronze</strong></p>
-        <p>Team Split Adjustment: <strong id="team-split-adjustment">$0.00</strong></p>
-        <p>Personal Sphere Adjustment: <strong id="personal-sphere-adjustment">$0.00</strong></p>
+          <button type="submit">Calculate</button>
+        </form>
 
-        <div class="actions">
-          <button id="download-pdf" type="button" disabled>Download PDF</button>
-          <button id="view-page-2" type="button">Page 2: Tier Guide</button>
-        </div>
+        <section class="results" aria-live="polite">
+          <h2>Results</h2>
+          <p>Agent Commission: <strong id="agent-commission">$0.00</strong></p>
+          <p>Broker Split: <strong id="broker-amount">$0.00</strong></p>
+          <p>Net Income: <strong id="net-income">$0.00</strong></p>
+          <p>Tier Level: <strong id="tier-level-result">Bronze</strong></p>
+          <p>Team Split Adjustment: <strong id="team-split-adjustment">$0.00</strong></p>
+          <p>Personal Sphere Adjustment: <strong id="personal-sphere-adjustment">$0.00</strong></p>
+
+          <div class="actions">
+            <button id="download-pdf" type="button" disabled>Download PDF</button>
+            <button id="view-page-2" type="button">Page 2: Tier Guide</button>
+          </div>
+        </section>
+
+        <section id="tier-guide" class="tier-guide" hidden>
+          <h2>Page 2: Quarterly Tier Split Guide</h2>
+          <div id="tier-guide-list"></div>
+        </section>
       </section>
 
-      <section id="tier-guide" class="tier-guide" hidden>
-        <h2>Page 2: Quarterly Tier Split Guide</h2>
-        <div id="tier-guide-list"></div>
+      <section id="mortgage-page" class="mortgage-calculator" hidden>
+        <h2>Mortgage Payment Calculator</h2>
+        <form id="mortgage-form">
+          <label for="loan-amount">Loan Amount ($)</label>
+          <input
+            id="loan-amount"
+            name="loanAmount"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 350000"
+            required
+          />
+
+          <label for="annual-interest-rate">Interest Rate (%)</label>
+          <input
+            id="annual-interest-rate"
+            name="annualInterestRate"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="e.g. 6.5"
+            required
+          />
+
+          <label for="loan-term-years">Loan Term (Years)</label>
+          <input
+            id="loan-term-years"
+            name="loanTermYears"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="e.g. 30"
+            required
+          />
+
+          <button type="submit">Calculate Mortgage</button>
+        </form>
+
+        <section class="results" aria-live="polite">
+          <h3>Mortgage Result</h3>
+          <p>Monthly Payment: <strong id="monthly-payment">$0.00</strong></p>
+          <div class="actions">
+            <button id="download-mortgage-pdf" type="button" disabled>Download PDF</button>
+          </div>
+        </section>
       </section>
     </main>
 

@@ -232,6 +232,10 @@ function showStartupError(message) {
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("calculator-form");
+  const commissionPageSection = document.getElementById("commission-page");
+  const mortgagePageSection = document.getElementById("mortgage-page");
+  const showCommissionPageButton = document.getElementById("show-commission-page");
+  const showMortgagePageButton = document.getElementById("show-mortgage-page");
   const agentCommissionEl = document.getElementById("agent-commission");
   const brokerAmountEl = document.getElementById("broker-amount");
   const netIncomeEl = document.getElementById("net-income");
@@ -242,9 +246,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewPage2Button = document.getElementById("view-page-2");
   const tierGuideSection = document.getElementById("tier-guide");
   const tierGuideList = document.getElementById("tier-guide-list");
+  const mortgageCalculatorSection = document.getElementById("mortgage-page");
+  const mortgageForm = document.getElementById("mortgage-form");
+  const monthlyPaymentEl = document.getElementById("monthly-payment");
+  const downloadMortgagePdfButton = document.getElementById("download-mortgage-pdf");
 
   if (
     !form ||
+    !commissionPageSection ||
+    !mortgagePageSection ||
+    !showCommissionPageButton ||
+    !showMortgagePageButton ||
     !agentCommissionEl ||
     !brokerAmountEl ||
     !netIncomeEl ||
@@ -254,13 +266,18 @@ document.addEventListener("DOMContentLoaded", () => {
     !downloadPdfButton ||
     !viewPage2Button ||
     !tierGuideSection ||
-    !tierGuideList
+    !tierGuideList ||
+    !mortgageCalculatorSection ||
+    !mortgageForm ||
+    !monthlyPaymentEl ||
+    !downloadMortgagePdfButton
   ) {
     showStartupError("App failed to start: missing required page elements.");
     return;
   }
 
   let latestCalculation = null;
+  let latestMortgageCalculation = null;
   let isTierGuideVisible = false;
 
   tierGuideList.innerHTML = `
@@ -343,6 +360,20 @@ document.addEventListener("DOMContentLoaded", () => {
       : "Page 2: Tier Guide";
   });
 
+  showCommissionPageButton.addEventListener("click", () => {
+    commissionPageSection.hidden = false;
+    mortgagePageSection.hidden = true;
+    showCommissionPageButton.classList.add("active");
+    showMortgagePageButton.classList.remove("active");
+  });
+
+  showMortgagePageButton.addEventListener("click", () => {
+    commissionPageSection.hidden = true;
+    mortgagePageSection.hidden = false;
+    showMortgagePageButton.classList.add("active");
+    showCommissionPageButton.classList.remove("active");
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -402,6 +433,47 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadPdfButton.disabled = false;
   });
 
+  mortgageForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const mortgageFormData = new FormData(mortgageForm);
+    const loanAmount = Number(mortgageFormData.get("loanAmount"));
+    const annualInterestRate = Number(mortgageFormData.get("annualInterestRate"));
+    const loanTermYears = Number(mortgageFormData.get("loanTermYears"));
+
+    if (
+      Number.isNaN(loanAmount) ||
+      Number.isNaN(annualInterestRate) ||
+      Number.isNaN(loanTermYears) ||
+      loanAmount <= 0 ||
+      loanTermYears <= 0 ||
+      annualInterestRate < 0
+    ) {
+      showStartupError("Invalid mortgage values. Please enter valid numbers.");
+      return;
+    }
+
+    const monthlyRate = annualInterestRate / 100 / 12;
+    const totalPayments = loanTermYears * 12;
+    let monthlyPayment = 0;
+
+    if (monthlyRate === 0) {
+      monthlyPayment = loanAmount / totalPayments;
+    } else {
+      const factor = Math.pow(1 + monthlyRate, totalPayments);
+      monthlyPayment = (loanAmount * monthlyRate * factor) / (factor - 1);
+    }
+
+    latestMortgageCalculation = {
+      loanAmount,
+      annualInterestRate,
+      loanTermYears,
+      monthlyPayment,
+    };
+    monthlyPaymentEl.textContent = formatCurrency(monthlyPayment);
+    downloadMortgagePdfButton.disabled = false;
+  });
+
   downloadPdfButton.addEventListener("click", () => {
     try {
       if (!latestCalculation) {
@@ -453,6 +525,42 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Failed to generate PDF:", error);
       alert("Something went wrong while creating the PDF. Open Console for details.");
+    }
+  });
+
+  downloadMortgagePdfButton.addEventListener("click", () => {
+    try {
+      if (!latestMortgageCalculation) {
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF library did not load. Please refresh and try again.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const now = new Date();
+
+      doc.setFontSize(16);
+      doc.text("Mortgage Payment Summary", 20, 20);
+      doc.setFontSize(11);
+      doc.text(`Generated: ${now.toLocaleString()}`, 20, 30);
+      doc.text(`Loan Amount: ${formatCurrency(latestMortgageCalculation.loanAmount)}`, 20, 45);
+      doc.text(`Interest Rate: ${latestMortgageCalculation.annualInterestRate}%`, 20, 55);
+      doc.text(`Loan Term: ${latestMortgageCalculation.loanTermYears} years`, 20, 65);
+      doc.setFontSize(13);
+      doc.text(
+        `Monthly Payment: ${formatCurrency(latestMortgageCalculation.monthlyPayment)}`,
+        20,
+        82
+      );
+
+      doc.save("mortgage-payment-summary.pdf");
+    } catch (error) {
+      console.error("Failed to generate mortgage PDF:", error);
+      alert("Something went wrong while creating the mortgage PDF.");
     }
   });
 });

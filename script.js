@@ -367,10 +367,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const agentCommission = salePrice * (commissionRate / 100);
     const brokerAmount = agentCommission * (brokerSplit / 100);
     const netIncome = agentCommission - brokerAmount;
-    const teamSplitTeamAmount = salePrice * (selectedTierRule.teamSplitTeamPct / 100);
-    const teamSplitAgentAmount = salePrice * (selectedTierRule.teamSplitAgentPct / 100);
-    const personalSphereTeamAmount = salePrice * (selectedTierRule.personalSphereTeamPct / 100);
-    const personalSphereAgentAmount = salePrice * (selectedTierRule.personalSphereAgentPct / 100);
+    const teamSplitTeamAmount = agentCommission * (selectedTierRule.teamSplitTeamPct / 100);
+    const teamSplitAgentAmount = agentCommission * (selectedTierRule.teamSplitAgentPct / 100);
+    const personalSphereTeamAmount =
+      agentCommission * (selectedTierRule.personalSphereTeamPct / 100);
+    const personalSphereAgentAmount =
+      agentCommission * (selectedTierRule.personalSphereAgentPct / 100);
 
     latestCalculation = {
       salePrice,

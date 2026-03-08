@@ -348,10 +348,59 @@ function showStartupError(message) {
   main.appendChild(error);
 }
 
+async function exportElementAsPdf(element, fileName) {
+  if (!window.html2canvas) {
+    alert("Screenshot library did not load. Please refresh and try again.");
+    return;
+  }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("PDF library did not load. Please refresh and try again.");
+    return;
+  }
+
+  let canvas;
+  document.body.classList.add("pdf-capture");
+  try {
+    canvas = await window.html2canvas(element, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+    });
+  } finally {
+    document.body.classList.remove("pdf-capture");
+  }
+
+  const { jsPDF } = window.jspdf;
+  const orientation = canvas.width > canvas.height ? "landscape" : "portrait";
+  const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 8;
+  const printableWidth = pageWidth - margin * 2;
+  const scaledImageHeight = (canvas.height * printableWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+
+  let heightLeft = scaledImageHeight;
+  let position = margin;
+  doc.addImage(imgData, "PNG", margin, position, printableWidth, scaledImageHeight);
+  heightLeft -= pageHeight - margin * 2;
+
+  while (heightLeft > 0) {
+    doc.addPage();
+    position = margin - (scaledImageHeight - heightLeft);
+    doc.addImage(imgData, "PNG", margin, position, printableWidth, scaledImageHeight);
+    heightLeft -= pageHeight - margin * 2;
+  }
+
+  doc.save(fileName);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("calculator-form");
   const commissionPageSection = document.getElementById("commission-page");
+  const commissionSurface = document.getElementById("commission-surface");
   const mortgagePageSection = document.getElementById("mortgage-page");
+  const mortgageSurface = document.getElementById("mortgage-surface");
   const showCommissionPageButton = document.getElementById("show-commission-page");
   const showMortgagePageButton = document.getElementById("show-mortgage-page");
   const agentCommissionEl = document.getElementById("agent-commission");
@@ -389,7 +438,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (
     !form ||
     !commissionPageSection ||
+    !commissionSurface ||
     !mortgagePageSection ||
+    !mortgageSurface ||
     !showCommissionPageButton ||
     !showMortgagePageButton ||
     !agentCommissionEl ||
@@ -698,98 +749,26 @@ document.addEventListener("DOMContentLoaded", () => {
       : "Show Amortization Schedule";
   });
 
-  downloadPdfButton.addEventListener("click", () => {
+  downloadPdfButton.addEventListener("click", async () => {
     try {
       if (!latestCalculation) {
         return;
       }
-
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF library did not load. Please refresh and try again.");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const now = new Date();
-
-      doc.setFontSize(16);
-      doc.text("Commission Summary", 20, 20);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${formatDate(now)}`, 20, 30);
-      doc.text(`Sale Price: ${formatCurrency(latestCalculation.salePrice)}`, 20, 45);
-      doc.text(`Commission Rate: ${latestCalculation.commissionRate}%`, 20, 55);
-      doc.text(`Broker Split: ${latestCalculation.brokerSplit}%`, 20, 65);
-      doc.text(`Closings Per Quarter: ${latestCalculation.closingsPerQuarter}`, 20, 75);
-      doc.text(`Tier Level: ${latestCalculation.tierLevel}`, 20, 85);
-      doc.text(
-        `Agent Commission: ${formatCurrency(latestCalculation.agentCommission)}`,
-        20,
-        100
-      );
-      doc.text(`Broker Amount: ${formatCurrency(latestCalculation.brokerAmount)}`, 20, 110);
-      doc.text(`Net Income: ${formatCurrency(latestCalculation.netIncome)}`, 20, 120);
-      doc.text(
-        `Team Split Adj: Team ${formatCurrency(latestCalculation.teamSplitTeamAmount)} | Agent ${formatCurrency(latestCalculation.teamSplitAgentAmount)}`,
-        20,
-        130
-      );
-      doc.text(
-        `Personal Sphere Adj: Team ${formatCurrency(latestCalculation.personalSphereTeamAmount)} | Agent ${formatCurrency(latestCalculation.personalSphereAgentAmount)}`,
-        20,
-        140
-      );
-      doc.setFontSize(10);
-      doc.text("See page 2 for quarterly tier split guide.", 20, 155);
-
-      doc.addPage("a4", "landscape");
-      drawPdfTierMatrix(doc);
-
-      doc.save("commission-summary.pdf");
+      await exportElementAsPdf(commissionPageSection, "commission-calculator-view.pdf");
     } catch (error) {
-      console.error("Failed to generate PDF:", error);
-      alert("Something went wrong while creating the PDF. Open Console for details.");
+      console.error("Failed to export commission view:", error);
+      alert("Something went wrong while creating the commission PDF.");
     }
   });
 
-  downloadMortgagePdfButton.addEventListener("click", () => {
+  downloadMortgagePdfButton.addEventListener("click", async () => {
     try {
       if (!latestMortgageCalculation) {
         return;
       }
-
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF library did not load. Please refresh and try again.");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      const now = new Date();
-
-      doc.setFontSize(16);
-      doc.text("Mortgage Payment Summary", 20, 20);
-      doc.setFontSize(11);
-      doc.text(`Generated: ${formatDate(now)}`, 20, 30);
-      doc.text(`Loan Amount: ${formatCurrency(latestMortgageCalculation.loanAmount)}`, 20, 45);
-      doc.text(`Interest Rate: ${latestMortgageCalculation.annualInterestRate}%`, 20, 55);
-      doc.text(`Loan Term: ${latestMortgageCalculation.loanTermYears} years`, 20, 65);
-      doc.text(`Payment Start Date: ${latestMortgageCalculation.paymentStartDate}`, 20, 75);
-      doc.text(
-        `Total Early Payments: ${formatCurrency(latestMortgageCalculation.totalEarlyPayments)}`,
-        20,
-        85
-      );
-      doc.setFontSize(13);
-      doc.text(
-        `Monthly Payment: ${formatCurrency(latestMortgageCalculation.monthlyPayment)}`,
-        20,
-        100
-      );
-
-      doc.save("mortgage-payment-summary.pdf");
+      await exportElementAsPdf(mortgagePageSection, "mortgage-calculator-view.pdf");
     } catch (error) {
-      console.error("Failed to generate mortgage PDF:", error);
+      console.error("Failed to export mortgage view:", error);
       alert("Something went wrong while creating the mortgage PDF.");
     }
   });

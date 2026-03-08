@@ -5,49 +5,75 @@
 body {
   margin: 0;
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #f5f7fb;
+  background: #eef1f7;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #1f2937;
+  color: #0f172a;
+  padding: 28px 16px;
 }
 
-.card {
-  width: min(96vw, 1120px);
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+.app-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
 }
 
-h1 {
-  margin: 0 0 8px;
-  font-size: 1.5rem;
+.hero {
+  text-align: center;
+  margin-bottom: 18px;
 }
 
-.subtitle {
-  margin: 0 0 20px;
-  color: #6b7280;
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.85rem);
+  font-weight: 800;
+}
+
+.hero p {
+  margin: 10px 0 0;
+  color: #475569;
+  font-size: 1rem;
 }
 
 .top-nav {
+  width: min(620px, 100%);
+  margin: 0 auto 22px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #dbe3f0;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 16px;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
 }
 
 .nav-button {
-  margin-top: 0;
-  background: #475569;
-}
-
-.nav-button:hover {
-  background: #334155;
+  border: 0;
+  background: transparent;
+  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 16px 14px;
+  cursor: pointer;
 }
 
 .nav-button.active {
-  background: #2563eb;
+  background: #2f65d9;
+  color: #ffffff;
+}
+
+.surface {
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #dbe3f0;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.09);
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.25fr);
+  gap: 24px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 1.85rem;
 }
 
 form {
@@ -56,56 +82,143 @@ form {
 }
 
 label {
-  font-weight: 600;
   font-size: 0.95rem;
+  font-weight: 700;
+  color: #1f2f46;
 }
 
 input,
 select {
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  width: 100%;
+  height: 46px;
+  border: 1px solid #c8d3e3;
+  border-radius: 10px;
+  padding: 0 12px;
   font-size: 1rem;
-  background: #ffffff;
-  color: #1f2937;
+  color: #0f172a;
+  background: #fbfdff;
 }
 
 button {
-  margin-top: 8px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: #2563eb;
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
+  border: 0;
+  border-radius: 10px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 11px 12px;
   cursor: pointer;
+  background: #2f65d9;
 }
 
-button:hover {
-  background: #1d4ed8;
+.result-panel {
+  display: grid;
+  gap: 12px;
 }
 
-.results {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid #e5e7eb;
+.result-ring {
+  width: 180px;
+  height: 180px;
+  margin: 4px auto 2px;
+  border-radius: 50%;
+  background: conic-gradient(#2f65d9 0 300deg, #d6d9e0 300deg 360deg);
+  display: grid;
+  place-items: center;
 }
 
-.results h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
+.result-ring > div {
+  width: 142px;
+  height: 142px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 10px;
+}
+
+.result-ring strong {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(0.9rem, 1.7vw, 1.35rem);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-ring span {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+}
+
+.metric-card span {
+  display: block;
+  font-size: 0.9rem;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.metric-card strong {
+  font-size: 1.55rem;
+}
+
+.metric-card.blue {
+  background: #dce7f8;
+  border-left: 4px solid #2f65d9;
+}
+.metric-card.blue strong {
+  color: #2f65d9;
+}
+
+.metric-card.green {
+  background: #ddefe4;
+  border-left: 4px solid #16a34a;
+}
+.metric-card.green strong {
+  color: #15803d;
+}
+
+.metric-card.amber {
+  background: #f3e9d8;
+  border-left: 4px solid #b45309;
+}
+.metric-card.amber strong {
+  color: #b45309;
+}
+
+.metric-card.purple {
+  background: #e8dff3;
+  border-left: 4px solid #7c3aed;
+}
+.metric-card.purple strong {
+  color: #6d28d9;
+}
+
+.tier-line {
+  margin: 2px 0 0;
+  font-size: 1rem;
 }
 
 .actions {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 2px;
 }
 
-#download-pdf {
-  width: 100%;
-  margin-top: 0;
+#download-pdf,
+#download-mortgage-pdf {
   background: #0f766e;
 }
 
@@ -114,21 +227,7 @@ button:hover {
   background: #0d615a;
 }
 
-#download-pdf:disabled,
-#download-mortgage-pdf:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-#download-mortgage-pdf {
-  width: 100%;
-  margin-top: 0;
-  background: #0f766e;
-}
-
 #download-amortization-pdf {
-  width: 100%;
-  margin-top: 0;
   background: #14532d;
 }
 
@@ -136,29 +235,7 @@ button:hover {
   background: #166534;
 }
 
-#download-amortization-pdf:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-#toggle-amortization {
-  width: 100%;
-  margin-top: 0;
-  background: #1f4b66;
-}
-
-#toggle-amortization:hover {
-  background: #173a50;
-}
-
-#toggle-amortization:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
 #view-page-2 {
-  width: 100%;
-  margin-top: 0;
   background: #334155;
 }
 
@@ -166,20 +243,37 @@ button:hover {
   background: #1e293b;
 }
 
-.tier-guide {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid #e5e7eb;
+#toggle-amortization {
+  background: #1f4b66;
 }
 
-.tier-guide h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
+#toggle-amortization:hover {
+  background: #173a50;
+}
+
+button:disabled {
+  background: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.tier-guide,
+.amortization-section {
+  margin-top: 18px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #dbe3f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+  padding: 18px;
+}
+
+.tier-guide h2,
+.amortization-section h3 {
+  margin: 0 0 12px;
 }
 
 .tier-matrix {
   display: grid;
-  grid-template-columns: 240px minmax(560px, 1fr);
+  grid-template-columns: 230px minmax(560px, 1fr);
   gap: 10px;
   align-items: start;
 }
@@ -187,7 +281,6 @@ button:hover {
 .tier-row-labels {
   display: grid;
   grid-template-rows: 52px 52px 52px 86px 86px;
-  align-items: stretch;
 }
 
 .tier-row-label {
@@ -196,16 +289,16 @@ button:hover {
   justify-content: flex-end;
   text-align: right;
   padding-right: 10px;
-  font-size: 1.05rem;
-  line-height: 1.25;
-  color: #111827;
+  font-size: 0.98rem;
 }
 
 .tier-row-spacer {
   visibility: hidden;
 }
 
-.tier-table-wrap {
+.tier-table-wrap,
+.amortization-table-wrap,
+.tier-guide-landscape {
   overflow-x: auto;
 }
 
@@ -221,31 +314,18 @@ button:hover {
   border: 2px solid #111111;
   text-align: center;
   padding: 8px 5px;
-  color: #111111;
-  font-size: 1.15rem;
+  font-size: 1.02rem;
 }
 
 .tier-table th {
-  height: 52px;
   font-weight: 700;
-}
-
-.tier-table tbody tr:nth-child(1) td,
-.tier-table tbody tr:nth-child(2) td {
-  height: 52px;
-}
-
-.tier-table tbody tr:nth-child(3) td,
-.tier-table tbody tr:nth-child(4) td {
-  height: 86px;
 }
 
 .split-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .tier-bronze {
@@ -268,58 +348,25 @@ button:hover {
   background: #9ccfdd;
 }
 
-.tier-guide-landscape {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.mortgage-calculator {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-.mortgage-calculator h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
-}
-
-.mortgage-calculator h3 {
-  margin: 0 0 10px;
-  font-size: 1rem;
-}
-
-.amortization-section {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid #e5e7eb;
-}
-
 .amortization-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .amortization-card {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #f8fafc;
+  border: 1px solid #c8d3e3;
+  border-radius: 10px;
+  background: #f9fbff;
   padding: 10px 12px;
 }
 
 .amortization-card h4 {
   margin: 0 0 8px;
-  font-size: 1rem;
 }
 
 .amortization-card p {
   margin: 6px 0;
-  font-size: 0.95rem;
-}
-
-.amortization-table-wrap {
-  margin-top: 12px;
-  overflow-x: auto;
 }
 
 .amortization-table {
@@ -330,10 +377,10 @@ button:hover {
 
 .amortization-table th,
 .amortization-table td {
-  border: 1px solid #94a3b8;
+  border: 1px solid #9eb5d3;
   padding: 6px 8px;
   text-align: right;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .amortization-table th:nth-child(1),
@@ -344,16 +391,61 @@ button:hover {
 }
 
 .amortization-table thead th {
-  background: #1f3f57;
+  background: #244760;
   color: #ffffff;
 }
 
 .amortization-table tbody tr:nth-child(even) {
-  background: #eef2f7;
+  background: #edf2f8;
 }
 
-@media (max-width: 1024px) {
+.pdf-capture .actions {
+  display: none !important;
+}
+
+.pdf-capture .metric-card span,
+.pdf-capture .metric-card strong {
+  width: 100%;
+  text-align: center;
+}
+
+.pdf-capture .result-ring {
+  background: #2f65d9 !important;
+  border: 12px solid #d6d9e0;
+}
+
+.pdf-capture input {
+  text-align: left;
+  padding-left: 14px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 980px) {
+  .surface {
+    grid-template-columns: 1fr;
+  }
+
+  .result-ring {
+    width: 156px;
+    height: 156px;
+  }
+
+  .result-ring > div {
+    width: 124px;
+    height: 124px;
+  }
+
+  .result-ring strong {
+    font-size: 1.55rem;
+  }
+
+  .result-grid,
+  .amortization-summary {
+    grid-template-columns: 1fr;
+  }
+
   .tier-matrix {
-    min-width: 860px;
+    min-width: 820px;
   }
 }

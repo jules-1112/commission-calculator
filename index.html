@@ -127,6 +127,25 @@
             required
           />
 
+          <label for="payment-start-date">Payment Start Date</label>
+          <input
+            id="payment-start-date"
+            name="paymentStartDate"
+            type="date"
+            required
+          />
+
+          <label for="total-early-payments">Total Early Payments ($)</label>
+          <input
+            id="total-early-payments"
+            name="totalEarlyPayments"
+            type="number"
+            min="0"
+            step="0.01"
+            value="0"
+            required
+          />
+
           <button type="submit">Calculate Mortgage</button>
         </form>
 
@@ -135,6 +154,58 @@
           <p>Monthly Payment: <strong id="monthly-payment">$0.00</strong></p>
           <div class="actions">
             <button id="download-mortgage-pdf" type="button" disabled>Download PDF</button>
+            <button id="toggle-amortization" type="button" disabled>Show Amortization Schedule</button>
+          </div>
+        </section>
+
+        <section id="amortization-section" class="amortization-section" hidden>
+          <h3>Mortgage Amortization Schedule</h3>
+
+          <div class="amortization-summary">
+            <article class="amortization-card">
+              <h4>Enter Values</h4>
+              <p>Loan amount: <strong id="am-loan-amount">$0.00</strong></p>
+              <p>Interest rate: <strong id="am-interest-rate">0.00%</strong></p>
+              <p>Loan term in years: <strong id="am-loan-term">0</strong></p>
+              <p>Payments made per year: <strong id="am-payments-per-year">12</strong></p>
+              <p>Payment start date: <strong id="am-payment-start-date">-</strong></p>
+            </article>
+
+            <article class="amortization-card">
+              <h4>Loan Summary</h4>
+              <p>Scheduled payment: <strong id="am-scheduled-payment">$0.00</strong></p>
+              <p>Scheduled number of payments: <strong id="am-scheduled-count">0</strong></p>
+              <p>Actual number of payments: <strong id="am-actual-count">0</strong></p>
+              <p>Years saved off original loan term: <strong id="am-years-saved">0.00</strong></p>
+              <p>Total early payments: <strong id="am-total-early-payments">$0.00</strong></p>
+              <p>Total interest: <strong id="am-total-interest">$0.00</strong></p>
+            </article>
+          </div>
+
+          <div class="amortization-table-wrap">
+            <table id="amortization-table" class="amortization-table">
+              <thead>
+                <tr>
+                  <th>PMT No</th>
+                  <th>Payment Date</th>
+                  <th>Beginning Balance</th>
+                  <th>Scheduled Payment</th>
+                  <th>Extra Payment</th>
+                  <th>Total Payment</th>
+                  <th>Principal</th>
+                  <th>Interest</th>
+                  <th>Ending Balance</th>
+                  <th>Cumulative Interest</th>
+                </tr>
+              </thead>
+              <tbody id="amortization-body"></tbody>
+            </table>
+          </div>
+
+          <div class="actions">
+            <button id="download-amortization-pdf" type="button" disabled>
+              Download Amortization PDF
+            </button>
           </div>
         </section>
       </section>

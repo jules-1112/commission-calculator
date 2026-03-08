@@ -126,6 +126,36 @@ button:hover {
   background: #0f766e;
 }
 
+#download-amortization-pdf {
+  width: 100%;
+  margin-top: 0;
+  background: #14532d;
+}
+
+#download-amortization-pdf:hover {
+  background: #166534;
+}
+
+#download-amortization-pdf:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+#toggle-amortization {
+  width: 100%;
+  margin-top: 0;
+  background: #1f4b66;
+}
+
+#toggle-amortization:hover {
+  background: #173a50;
+}
+
+#toggle-amortization:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
 #view-page-2 {
   width: 100%;
   margin-top: 0;
@@ -256,6 +286,70 @@ button:hover {
 .mortgage-calculator h3 {
   margin: 0 0 10px;
   font-size: 1rem;
+}
+
+.amortization-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.amortization-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.amortization-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.amortization-card h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.amortization-card p {
+  margin: 6px 0;
+  font-size: 0.95rem;
+}
+
+.amortization-table-wrap {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.amortization-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 980px;
+}
+
+.amortization-table th,
+.amortization-table td {
+  border: 1px solid #94a3b8;
+  padding: 6px 8px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.amortization-table th:nth-child(1),
+.amortization-table th:nth-child(2),
+.amortization-table td:nth-child(1),
+.amortization-table td:nth-child(2) {
+  text-align: left;
+}
+
+.amortization-table thead th {
+  background: #1f3f57;
+  color: #ffffff;
+}
+
+.amortization-table tbody tr:nth-child(even) {
+  background: #eef2f7;
 }
 
 @media (max-width: 1024px) {

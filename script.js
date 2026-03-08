@@ -53,6 +53,124 @@ function formatCurrency(amount) {
   }).format(amount);
 }
 
+function formatPercent(value) {
+  return `${value.toFixed(2)}%`;
+}
+
+function formatDate(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${month}/${day}/${year}`;
+}
+
+function parseLocalDateInput(value) {
+  const raw = String(value).trim();
+  const dateParts = raw.split("-");
+  if (dateParts.length === 3) {
+    const year = Number(dateParts[0]);
+    const monthIndex = Number(dateParts[1]) - 1;
+    const day = Number(dateParts[2]);
+    if (Number.isNaN(year) || Number.isNaN(monthIndex) || Number.isNaN(day)) {
+      return null;
+    }
+    const parsed = new Date(year, monthIndex, day);
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== monthIndex ||
+      parsed.getDate() !== day
+    ) {
+      return null;
+    }
+    return parsed;
+  }
+
+  const parts = raw.split("/");
+  if (parts.length !== 3) {
+    return null;
+  }
+  const month = Number(parts[0]);
+  const day = Number(parts[1]);
+  const year = Number(parts[2]);
+  const monthIndex = month - 1;
+  if (Number.isNaN(year) || Number.isNaN(monthIndex) || Number.isNaN(day)) {
+    return null;
+  }
+  const parsed = new Date(year, monthIndex, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== monthIndex ||
+    parsed.getDate() !== day
+  ) {
+    return null;
+  }
+  return parsed;
+}
+
+function buildAmortizationSchedule(
+  loanAmount,
+  annualInterestRate,
+  loanTermYears,
+  monthlyPayment,
+  paymentStartDate,
+  totalEarlyPayments
+) {
+  const monthlyRate = annualInterestRate / 100 / 12;
+  const scheduledPayments = loanTermYears * 12;
+  const monthlyEarlyPayment = scheduledPayments > 0 ? totalEarlyPayments / scheduledPayments : 0;
+  const rows = [];
+  let balance = loanAmount;
+  let cumulativeInterest = 0;
+  let earlyPaymentsApplied = 0;
+  let remainingEarlyPayments = totalEarlyPayments;
+
+  for (let paymentNo = 1; paymentNo <= scheduledPayments && balance > 0.0001; paymentNo += 1) {
+    const beginningBalance = balance;
+    const interest = monthlyRate === 0 ? 0 : beginningBalance * monthlyRate;
+    const extraPayment = Math.min(monthlyEarlyPayment, remainingEarlyPayments);
+    let principal = monthlyPayment - interest + extraPayment;
+    let totalPayment = monthlyPayment + extraPayment;
+
+    if (principal > beginningBalance) {
+      principal = beginningBalance;
+      totalPayment = principal + interest;
+    }
+
+    balance = Math.max(0, beginningBalance - principal);
+    cumulativeInterest += interest;
+    earlyPaymentsApplied += extraPayment;
+    remainingEarlyPayments = Math.max(0, remainingEarlyPayments - extraPayment);
+
+    const paymentDate = new Date(paymentStartDate);
+    paymentDate.setMonth(paymentDate.getMonth() + (paymentNo - 1));
+
+    rows.push({
+      paymentNo,
+      paymentDate: formatDate(paymentDate),
+      beginningBalance,
+      scheduledPayment: monthlyPayment,
+      extraPayment,
+      totalPayment,
+      principal,
+      interest,
+      endingBalance: balance,
+      cumulativeInterest,
+    });
+  }
+
+  const actualPayments = rows.length;
+  const yearsSaved = Math.max(0, (scheduledPayments - actualPayments) / 12);
+
+  return {
+    rows,
+    scheduledPayments,
+    actualPayments,
+    yearsSaved,
+    totalInterest: cumulativeInterest,
+    totalEarlyPaymentsApplied: earlyPaymentsApplied,
+  };
+}
+
 function writeWrappedText(doc, text, x, y, maxWidth, lineHeight) {
   const lines =
     typeof doc.splitTextToSize === "function" ? doc.splitTextToSize(text, maxWidth) : [text];
@@ -250,6 +368,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const mortgageForm = document.getElementById("mortgage-form");
   const monthlyPaymentEl = document.getElementById("monthly-payment");
   const downloadMortgagePdfButton = document.getElementById("download-mortgage-pdf");
+  const downloadAmortizationPdfButton = document.getElementById("download-amortization-pdf");
+  const toggleAmortizationButton = document.getElementById("toggle-amortization");
+  const amortizationSection = document.getElementById("amortization-section");
+  const amortizationBody = document.getElementById("amortization-body");
+  const paymentStartDateInput = document.getElementById("payment-start-date");
+  const totalEarlyPaymentsInput = document.getElementById("total-early-payments");
+  const amLoanAmountEl = document.getElementById("am-loan-amount");
+  const amInterestRateEl = document.getElementById("am-interest-rate");
+  const amLoanTermEl = document.getElementById("am-loan-term");
+  const amPaymentsPerYearEl = document.getElementById("am-payments-per-year");
+  const amPaymentStartDateEl = document.getElementById("am-payment-start-date");
+  const amTotalEarlyPaymentsEl = document.getElementById("am-total-early-payments");
+  const amScheduledPaymentEl = document.getElementById("am-scheduled-payment");
+  const amScheduledCountEl = document.getElementById("am-scheduled-count");
+  const amActualCountEl = document.getElementById("am-actual-count");
+  const amYearsSavedEl = document.getElementById("am-years-saved");
+  const amTotalInterestEl = document.getElementById("am-total-interest");
 
   if (
     !form ||
@@ -270,7 +405,24 @@ document.addEventListener("DOMContentLoaded", () => {
     !mortgageCalculatorSection ||
     !mortgageForm ||
     !monthlyPaymentEl ||
-    !downloadMortgagePdfButton
+    !downloadMortgagePdfButton ||
+    !downloadAmortizationPdfButton ||
+    !toggleAmortizationButton ||
+    !amortizationSection ||
+    !amortizationBody ||
+    !paymentStartDateInput ||
+    !totalEarlyPaymentsInput ||
+    !amLoanAmountEl ||
+    !amInterestRateEl ||
+    !amLoanTermEl ||
+    !amPaymentsPerYearEl ||
+    !amPaymentStartDateEl ||
+    !amTotalEarlyPaymentsEl ||
+    !amScheduledPaymentEl ||
+    !amScheduledCountEl ||
+    !amActualCountEl ||
+    !amYearsSavedEl ||
+    !amTotalInterestEl
   ) {
     showStartupError("App failed to start: missing required page elements.");
     return;
@@ -279,6 +431,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let latestCalculation = null;
   let latestMortgageCalculation = null;
   let isTierGuideVisible = false;
+  let isAmortizationVisible = false;
+
+  if (!paymentStartDateInput.value) {
+    paymentStartDateInput.valueAsDate = new Date();
+  }
 
   tierGuideList.innerHTML = `
     <div class="tier-guide-landscape">
@@ -440,14 +597,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const loanAmount = Number(mortgageFormData.get("loanAmount"));
     const annualInterestRate = Number(mortgageFormData.get("annualInterestRate"));
     const loanTermYears = Number(mortgageFormData.get("loanTermYears"));
+    const paymentStartDateValue = String(mortgageFormData.get("paymentStartDate"));
+    const totalEarlyPayments = Number(mortgageFormData.get("totalEarlyPayments"));
+    const paymentStartDate = parseLocalDateInput(paymentStartDateValue);
 
     if (
       Number.isNaN(loanAmount) ||
       Number.isNaN(annualInterestRate) ||
       Number.isNaN(loanTermYears) ||
+      Number.isNaN(totalEarlyPayments) ||
+      !paymentStartDate ||
+      Number.isNaN(paymentStartDate.getTime()) ||
       loanAmount <= 0 ||
       loanTermYears <= 0 ||
-      annualInterestRate < 0
+      annualInterestRate < 0 ||
+      totalEarlyPayments < 0
     ) {
       showStartupError("Invalid mortgage values. Please enter valid numbers.");
       return;
@@ -464,14 +628,74 @@ document.addEventListener("DOMContentLoaded", () => {
       monthlyPayment = (loanAmount * monthlyRate * factor) / (factor - 1);
     }
 
-    latestMortgageCalculation = {
+    const amortization = buildAmortizationSchedule(
       loanAmount,
       annualInterestRate,
       loanTermYears,
       monthlyPayment,
+      paymentStartDate,
+      totalEarlyPayments
+    );
+
+    amortizationBody.innerHTML = amortization.rows
+      .map(
+        (row) => `
+        <tr>
+          <td>${row.paymentNo}</td>
+          <td>${row.paymentDate}</td>
+          <td>${formatCurrency(row.beginningBalance)}</td>
+          <td>${formatCurrency(row.scheduledPayment)}</td>
+          <td>${formatCurrency(row.extraPayment)}</td>
+          <td>${formatCurrency(row.totalPayment)}</td>
+          <td>${formatCurrency(row.principal)}</td>
+          <td>${formatCurrency(row.interest)}</td>
+          <td>${formatCurrency(row.endingBalance)}</td>
+          <td>${formatCurrency(row.cumulativeInterest)}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    amLoanAmountEl.textContent = formatCurrency(loanAmount);
+    amInterestRateEl.textContent = formatPercent(annualInterestRate);
+    amLoanTermEl.textContent = String(loanTermYears);
+    amPaymentsPerYearEl.textContent = "12";
+    amPaymentStartDateEl.textContent = formatDate(paymentStartDate);
+    amTotalEarlyPaymentsEl.textContent = formatCurrency(totalEarlyPayments);
+    amScheduledPaymentEl.textContent = formatCurrency(monthlyPayment);
+    amScheduledCountEl.textContent = String(amortization.scheduledPayments);
+    amActualCountEl.textContent = String(amortization.actualPayments);
+    amYearsSavedEl.textContent = amortization.yearsSaved.toFixed(2);
+    amTotalInterestEl.textContent = formatCurrency(amortization.totalInterest);
+
+    latestMortgageCalculation = {
+      loanAmount,
+      annualInterestRate,
+      loanTermYears,
+      paymentStartDate: formatDate(paymentStartDate),
+      totalEarlyPayments,
+      monthlyPayment,
+      amortization,
     };
     monthlyPaymentEl.textContent = formatCurrency(monthlyPayment);
     downloadMortgagePdfButton.disabled = false;
+    downloadAmortizationPdfButton.disabled = false;
+    toggleAmortizationButton.disabled = false;
+    isAmortizationVisible = false;
+    amortizationSection.hidden = true;
+    toggleAmortizationButton.textContent = "Show Amortization Schedule";
+  });
+
+  toggleAmortizationButton.addEventListener("click", () => {
+    if (!latestMortgageCalculation) {
+      return;
+    }
+
+    isAmortizationVisible = !isAmortizationVisible;
+    amortizationSection.hidden = !isAmortizationVisible;
+    toggleAmortizationButton.textContent = isAmortizationVisible
+      ? "Hide Amortization Schedule"
+      : "Show Amortization Schedule";
   });
 
   downloadPdfButton.addEventListener("click", () => {
@@ -492,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
       doc.setFontSize(16);
       doc.text("Commission Summary", 20, 20);
       doc.setFontSize(11);
-      doc.text(`Generated: ${now.toLocaleString()}`, 20, 30);
+      doc.text(`Generated: ${formatDate(now)}`, 20, 30);
       doc.text(`Sale Price: ${formatCurrency(latestCalculation.salePrice)}`, 20, 45);
       doc.text(`Commission Rate: ${latestCalculation.commissionRate}%`, 20, 55);
       doc.text(`Broker Split: ${latestCalculation.brokerSplit}%`, 20, 65);
@@ -546,15 +770,21 @@ document.addEventListener("DOMContentLoaded", () => {
       doc.setFontSize(16);
       doc.text("Mortgage Payment Summary", 20, 20);
       doc.setFontSize(11);
-      doc.text(`Generated: ${now.toLocaleString()}`, 20, 30);
+      doc.text(`Generated: ${formatDate(now)}`, 20, 30);
       doc.text(`Loan Amount: ${formatCurrency(latestMortgageCalculation.loanAmount)}`, 20, 45);
       doc.text(`Interest Rate: ${latestMortgageCalculation.annualInterestRate}%`, 20, 55);
       doc.text(`Loan Term: ${latestMortgageCalculation.loanTermYears} years`, 20, 65);
+      doc.text(`Payment Start Date: ${latestMortgageCalculation.paymentStartDate}`, 20, 75);
+      doc.text(
+        `Total Early Payments: ${formatCurrency(latestMortgageCalculation.totalEarlyPayments)}`,
+        20,
+        85
+      );
       doc.setFontSize(13);
       doc.text(
         `Monthly Payment: ${formatCurrency(latestMortgageCalculation.monthlyPayment)}`,
         20,
-        82
+        100
       );
 
       doc.save("mortgage-payment-summary.pdf");
@@ -563,4 +793,122 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Something went wrong while creating the mortgage PDF.");
     }
   });
+
+  downloadAmortizationPdfButton.addEventListener("click", () => {
+    try {
+      if (!latestMortgageCalculation || !latestMortgageCalculation.amortization) {
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF library did not load. Please refresh and try again.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const rows = latestMortgageCalculation.amortization.rows;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const top = 10;
+      const rowHeight = 6;
+      const headerRowHeight = 10;
+      const headers = [
+        "PMT No",
+        "Payment Date",
+        "Beginning Balance",
+        "Scheduled Payment",
+        "Extra Payment",
+        "Total Payment",
+        "Principal",
+        "Interest",
+        "Ending Balance",
+        "Cumulative Interest",
+      ];
+      const colWidths = [12, 22, 30, 24, 22, 24, 22, 20, 30, 25];
+      const tableWidth = colWidths.reduce((sum, width) => sum + width, 0);
+      const left = (pageWidth - tableWidth) / 2;
+
+      function drawHeader(y) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.text("Amortization Schedule", pageWidth / 2, y, { align: "center" });
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.text(
+          `Loan: ${formatCurrency(latestMortgageCalculation.loanAmount)} | Rate: ${latestMortgageCalculation.annualInterestRate}% | Term: ${latestMortgageCalculation.loanTermYears} years`,
+          pageWidth / 2,
+          y + 5,
+          { align: "center" }
+        );
+        doc.text(
+          `Start Date: ${latestMortgageCalculation.paymentStartDate} | Total Early Payments: ${formatCurrency(latestMortgageCalculation.totalEarlyPayments)}`,
+          pageWidth / 2,
+          y + 10,
+          { align: "center" }
+        );
+      }
+
+      function drawTableHeader(y) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        let x = left;
+        headers.forEach((header, idx) => {
+          doc.rect(x, y, colWidths[idx], headerRowHeight);
+          const headerLines = doc.splitTextToSize(header, colWidths[idx] - 2);
+          doc.text(headerLines, x + colWidths[idx] / 2, y + 3.8, { align: "center" });
+          x += colWidths[idx];
+        });
+      }
+
+      function drawRow(row, y) {
+        const values = [
+          String(row.paymentNo),
+          row.paymentDate,
+          formatCurrency(row.beginningBalance),
+          formatCurrency(row.scheduledPayment),
+          formatCurrency(row.extraPayment),
+          formatCurrency(row.totalPayment),
+          formatCurrency(row.principal),
+          formatCurrency(row.interest),
+          formatCurrency(row.endingBalance),
+          formatCurrency(row.cumulativeInterest),
+        ];
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.4);
+        let x = left;
+        values.forEach((value, idx) => {
+          doc.rect(x, y, colWidths[idx], rowHeight);
+          doc.text(value, x + colWidths[idx] / 2, y + 4.2, { align: "center" });
+          x += colWidths[idx];
+        });
+      }
+
+      let y = top;
+      drawHeader(y);
+      y += 16;
+      drawTableHeader(y);
+      y += headerRowHeight;
+
+      rows.forEach((row) => {
+        if (y + rowHeight > pageHeight - 10) {
+          doc.addPage("a4", "landscape");
+          y = top;
+          drawHeader(y);
+          y += 16;
+          drawTableHeader(y);
+          y += headerRowHeight;
+        }
+        drawRow(row, y);
+        y += rowHeight;
+      });
+
+      doc.save("mortgage-amortization-schedule.pdf");
+    } catch (error) {
+      console.error("Failed to generate amortization PDF:", error);
+      alert("Something went wrong while creating the amortization PDF.");
+    }
+  });
 });
+

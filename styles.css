@@ -369,6 +369,17 @@ button:disabled {
   margin: 6px 0;
 }
 
+.early-record {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #c8d3e3;
+}
+
+.early-record h5 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
 .amortization-table {
   border-collapse: collapse;
   width: 100%;

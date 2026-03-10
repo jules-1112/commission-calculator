@@ -161,10 +161,10 @@
               <label for="payment-start-date">Payment Start Date</label>
               <input id="payment-start-date" name="paymentStartDate" type="date" required />
 
-              <label for="total-early-payments">Total Early Payments ($)</label>
+              <label for="extra-payment">Extra Payment ($)</label>
               <input
-                id="total-early-payments"
-                name="totalEarlyPayments"
+                id="extra-payment"
+                name="extraPayment"
                 type="number"
                 min="0"
                 step="0.01"
@@ -203,6 +203,11 @@
               <p>Loan term in years: <strong id="am-loan-term">0</strong></p>
               <p>Payments made per year: <strong id="am-payments-per-year">12</strong></p>
               <p>Payment start date: <strong id="am-payment-start-date">-</strong></p>
+              <div class="early-record">
+                <h5>Record of Early Payments</h5>
+                <p>Extra payment (monthly): <strong id="am-extra-payment">$0.00</strong></p>
+                <p>Total early payments applied: <strong id="am-total-early-payments-applied">$0.00</strong></p>
+              </div>
             </article>
 
             <article class="amortization-card">

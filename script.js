@@ -113,33 +113,31 @@ function buildAmortizationSchedule(
   loanTermYears,
   monthlyPayment,
   paymentStartDate,
-  totalEarlyPayments
+  extraPaymentPerMonth
 ) {
   const monthlyRate = annualInterestRate / 100 / 12;
   const scheduledPayments = loanTermYears * 12;
-  const monthlyEarlyPayment = scheduledPayments > 0 ? totalEarlyPayments / scheduledPayments : 0;
   const rows = [];
   let balance = loanAmount;
   let cumulativeInterest = 0;
   let earlyPaymentsApplied = 0;
-  let remainingEarlyPayments = totalEarlyPayments;
+  const configuredExtraPayment = Math.max(0, extraPaymentPerMonth);
 
   for (let paymentNo = 1; paymentNo <= scheduledPayments && balance > 0.0001; paymentNo += 1) {
     const beginningBalance = balance;
     const interest = monthlyRate === 0 ? 0 : beginningBalance * monthlyRate;
-    const extraPayment = Math.min(monthlyEarlyPayment, remainingEarlyPayments);
-    let principal = monthlyPayment - interest + extraPayment;
-    let totalPayment = monthlyPayment + extraPayment;
+    let principal = monthlyPayment - interest + configuredExtraPayment;
+    let totalPayment = monthlyPayment + configuredExtraPayment;
 
     if (principal > beginningBalance) {
       principal = beginningBalance;
       totalPayment = principal + interest;
     }
+    const extraPaymentApplied = Math.max(0, totalPayment - monthlyPayment);
 
     balance = Math.max(0, beginningBalance - principal);
     cumulativeInterest += interest;
-    earlyPaymentsApplied += extraPayment;
-    remainingEarlyPayments = Math.max(0, remainingEarlyPayments - extraPayment);
+    earlyPaymentsApplied += extraPaymentApplied;
 
     const paymentDate = new Date(paymentStartDate);
     paymentDate.setMonth(paymentDate.getMonth() + (paymentNo - 1));
@@ -149,7 +147,7 @@ function buildAmortizationSchedule(
       paymentDate: formatDate(paymentDate),
       beginningBalance,
       scheduledPayment: monthlyPayment,
-      extraPayment,
+      extraPayment: extraPaymentApplied,
       totalPayment,
       principal,
       interest,
@@ -168,6 +166,7 @@ function buildAmortizationSchedule(
     yearsSaved,
     totalInterest: cumulativeInterest,
     totalEarlyPaymentsApplied: earlyPaymentsApplied,
+    extraPaymentPerMonth: configuredExtraPayment,
   };
 }
 
@@ -422,12 +421,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const amortizationSection = document.getElementById("amortization-section");
   const amortizationBody = document.getElementById("amortization-body");
   const paymentStartDateInput = document.getElementById("payment-start-date");
-  const totalEarlyPaymentsInput = document.getElementById("total-early-payments");
+  const extraPaymentInput = document.getElementById("extra-payment");
   const amLoanAmountEl = document.getElementById("am-loan-amount");
   const amInterestRateEl = document.getElementById("am-interest-rate");
   const amLoanTermEl = document.getElementById("am-loan-term");
   const amPaymentsPerYearEl = document.getElementById("am-payments-per-year");
   const amPaymentStartDateEl = document.getElementById("am-payment-start-date");
+  const amExtraPaymentEl = document.getElementById("am-extra-payment");
+  const amTotalEarlyPaymentsAppliedEl = document.getElementById("am-total-early-payments-applied");
   const amTotalEarlyPaymentsEl = document.getElementById("am-total-early-payments");
   const amScheduledPaymentEl = document.getElementById("am-scheduled-payment");
   const amScheduledCountEl = document.getElementById("am-scheduled-count");
@@ -462,12 +463,14 @@ document.addEventListener("DOMContentLoaded", () => {
     !amortizationSection ||
     !amortizationBody ||
     !paymentStartDateInput ||
-    !totalEarlyPaymentsInput ||
+    !extraPaymentInput ||
     !amLoanAmountEl ||
     !amInterestRateEl ||
     !amLoanTermEl ||
     !amPaymentsPerYearEl ||
     !amPaymentStartDateEl ||
+    !amExtraPaymentEl ||
+    !amTotalEarlyPaymentsAppliedEl ||
     !amTotalEarlyPaymentsEl ||
     !amScheduledPaymentEl ||
     !amScheduledCountEl ||
@@ -649,20 +652,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const annualInterestRate = Number(mortgageFormData.get("annualInterestRate"));
     const loanTermYears = Number(mortgageFormData.get("loanTermYears"));
     const paymentStartDateValue = String(mortgageFormData.get("paymentStartDate"));
-    const totalEarlyPayments = Number(mortgageFormData.get("totalEarlyPayments"));
+    const extraPayment = Number(mortgageFormData.get("extraPayment"));
     const paymentStartDate = parseLocalDateInput(paymentStartDateValue);
 
     if (
       Number.isNaN(loanAmount) ||
       Number.isNaN(annualInterestRate) ||
       Number.isNaN(loanTermYears) ||
-      Number.isNaN(totalEarlyPayments) ||
+      Number.isNaN(extraPayment) ||
       !paymentStartDate ||
       Number.isNaN(paymentStartDate.getTime()) ||
       loanAmount <= 0 ||
       loanTermYears <= 0 ||
       annualInterestRate < 0 ||
-      totalEarlyPayments < 0
+      extraPayment < 0
     ) {
       showStartupError("Invalid mortgage values. Please enter valid numbers.");
       return;
@@ -685,7 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loanTermYears,
       monthlyPayment,
       paymentStartDate,
-      totalEarlyPayments
+      extraPayment
     );
 
     amortizationBody.innerHTML = amortization.rows
@@ -712,7 +715,11 @@ document.addEventListener("DOMContentLoaded", () => {
     amLoanTermEl.textContent = String(loanTermYears);
     amPaymentsPerYearEl.textContent = "12";
     amPaymentStartDateEl.textContent = formatDate(paymentStartDate);
-    amTotalEarlyPaymentsEl.textContent = formatCurrency(totalEarlyPayments);
+    amExtraPaymentEl.textContent = formatCurrency(extraPayment);
+    amTotalEarlyPaymentsAppliedEl.textContent = formatCurrency(
+      amortization.totalEarlyPaymentsApplied
+    );
+    amTotalEarlyPaymentsEl.textContent = formatCurrency(amortization.totalEarlyPaymentsApplied);
     amScheduledPaymentEl.textContent = formatCurrency(monthlyPayment);
     amScheduledCountEl.textContent = String(amortization.scheduledPayments);
     amActualCountEl.textContent = String(amortization.actualPayments);
@@ -724,7 +731,8 @@ document.addEventListener("DOMContentLoaded", () => {
       annualInterestRate,
       loanTermYears,
       paymentStartDate: formatDate(paymentStartDate),
-      totalEarlyPayments,
+      extraPayment,
+      totalEarlyPayments: amortization.totalEarlyPaymentsApplied,
       monthlyPayment,
       amortization,
     };
@@ -821,7 +829,7 @@ document.addEventListener("DOMContentLoaded", () => {
           { align: "center" }
         );
         doc.text(
-          `Start Date: ${latestMortgageCalculation.paymentStartDate} | Total Early Payments: ${formatCurrency(latestMortgageCalculation.totalEarlyPayments)}`,
+          `Start Date: ${latestMortgageCalculation.paymentStartDate} | Extra Payment: ${formatCurrency(latestMortgageCalculation.extraPayment)}`,
           pageWidth / 2,
           y + 10,
           { align: "center" }

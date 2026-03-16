@@ -35,6 +35,10 @@
             <button type="submit" class="reset-btn">Send Reset Link</button>
             <button type="button" id="back-to-login" class="back-btn">Back to Login</button>
           </form>
+          <div id="reset-feedback" class="reset-feedback" hidden>
+            <p id="reset-feedback-message" class="reset-feedback-message"></p>
+            <a id="reset-link" class="reset-link" href="#" hidden>Open reset page</a>
+          </div>
         </section>
       </main>
     </section>
@@ -46,6 +50,9 @@
         const forgotForm = document.getElementById('forgot-form');
         const resetEmail = document.getElementById('reset-email');
         const backToLoginBtn = document.getElementById('back-to-login');
+        const resetFeedback = document.getElementById('reset-feedback');
+        const resetFeedbackMessage = document.getElementById('reset-feedback-message');
+        const resetLink = document.getElementById('reset-link');
 
         // Back to login
         backToLoginBtn?.addEventListener('click', () => {
@@ -69,9 +76,20 @@
               const data = await FitnessRealtorsAuth.forgotPassword({ email: emailValue });
 
               if (data.success) {
-                alert(data.message || 'Password reset link sent to your email!');
+                if (resetFeedback && resetFeedbackMessage) {
+                  resetFeedback.hidden = false;
+                  resetFeedbackMessage.textContent =
+                    data.emailSent === false
+                      ? 'Email sending is not configured yet. Use the reset link below.'
+                      : data.message || 'Password reset link sent to your email!';
+                }
+                if (resetLink && data.resetLink && data.emailSent === false) {
+                  resetLink.href = data.resetLink;
+                  resetLink.hidden = false;
+                } else if (resetLink) {
+                  resetLink.hidden = true;
+                }
                 resetEmail.value = '';
-                window.location.href = 'index.html';
               } else {
                 alert(data.message || 'Unable to process that email address.');
               }

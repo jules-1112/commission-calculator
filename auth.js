@@ -1,5 +1,6 @@
 const FitnessRealtorsAuth = (() => {
   const USERS_KEY = 'fr_users';
+  const RESET_KEY = 'fr_reset_tokens';
 
   function readUsers() {
     try {
@@ -13,6 +14,20 @@ const FitnessRealtorsAuth = (() => {
 
   function writeUsers(users) {
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
+  function readResetTokens() {
+    try {
+      const raw = localStorage.getItem(RESET_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function writeResetTokens(tokens) {
+    localStorage.setItem(RESET_KEY, JSON.stringify(tokens));
   }
 
   async function hashPassword(password) {
@@ -107,9 +122,54 @@ const FitnessRealtorsAuth = (() => {
         return { success: false, message: 'Email not found' };
       }
 
+      const token = crypto.randomUUID();
+      const resetTokens = readResetTokens();
+      resetTokens.push({
+        email: normalizedEmail,
+        token,
+        expiresAt: Date.now() + 1000 * 60 * 30,
+      });
+      writeResetTokens(resetTokens);
+
       return {
         success: true,
-        message: 'Account found. You can sign in with your saved password on this device.',
+        message: 'Password reset link created.',
+        fallbackMode: true,
+        resetLink: `${window.location.origin}/reset.html?token=${encodeURIComponent(token)}`,
+        emailSent: false,
+      };
+    }
+  }
+
+  async function resetPassword({ token, password }) {
+    try {
+      return await callApi('/api/reset-password', { token, password });
+    } catch (error) {
+      const resetTokens = readResetTokens();
+      const tokenEntry = resetTokens.find((entry) => entry.token === token);
+
+      if (!tokenEntry) {
+        return { success: false, message: 'Reset link is invalid.' };
+      }
+
+      if (Number(tokenEntry.expiresAt) < Date.now()) {
+        writeResetTokens(resetTokens.filter((entry) => entry.token !== token));
+        return { success: false, message: 'Reset link has expired.' };
+      }
+
+      const users = readUsers();
+      const userIndex = users.findIndex((user) => user.email === tokenEntry.email);
+      if (userIndex === -1) {
+        return { success: false, message: 'Account not found.' };
+      }
+
+      users[userIndex].passwordHash = await hashPassword(password);
+      writeUsers(users);
+      writeResetTokens(resetTokens.filter((entry) => entry.token !== token));
+
+      return {
+        success: true,
+        message: 'Password reset successfully.',
         fallbackMode: true,
       };
     }
@@ -119,5 +179,6 @@ const FitnessRealtorsAuth = (() => {
     signup,
     login,
     forgotPassword,
+    resetPassword,
   };
 })();

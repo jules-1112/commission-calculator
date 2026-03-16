@@ -40,6 +40,10 @@ async function handleApi(request, env) {
   const method = request.method.toUpperCase();
   const path = url.pathname.replace('/api', '');
 
+  if (!env.DB) {
+    return json({ success: false, message: 'Database binding is not configured.' }, 500);
+  }
+
   await ensureSchema(env);
 
   if (path === '/signup' && method === 'POST') {
@@ -54,6 +58,10 @@ async function handleApi(request, env) {
     return handleForgot(request, env);
   }
 
+  if (path === '/reset-password' && method === 'POST') {
+    return handleResetPassword(request, env);
+  }
+
   return json({ success: false, message: 'Endpoint not found' }, 404);
 }
 
@@ -61,17 +69,41 @@ let schemaReadyPromise;
 
 async function ensureSchema(env) {
   if (!schemaReadyPromise) {
-    schemaReadyPromise = env.DB.prepare(
-      `CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-      )`
-    ).run();
+    schemaReadyPromise = ensureUsersTable(env);
   }
 
   return schemaReadyPromise;
+}
+
+async function ensureUsersTable(env) {
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reset_token TEXT,
+      reset_token_expires_at TEXT
+    )`
+  ).run();
+
+  const columns = await env.DB.prepare('PRAGMA table_info(users)').all();
+  const columnNames = new Set((columns.results || []).map((column) => column.name));
+
+  if (!columnNames.has('created_at')) {
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN created_at TEXT').run();
+    await env.DB.prepare(
+      "UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+    ).run();
+  }
+
+  if (!columnNames.has('reset_token')) {
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN reset_token TEXT').run();
+  }
+
+  if (!columnNames.has('reset_token_expires_at')) {
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT').run();
+  }
 }
 
 async function handleSignup(request, env) {
@@ -84,15 +116,22 @@ async function handleSignup(request, env) {
     }
 
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     await env.DB.prepare('INSERT INTO users (email, password) VALUES (?, ?)')
-      .bind(email, hashed)
+      .bind(normalizedEmail, hashed)
       .run();
 
     return json({ success: true, message: 'User created successfully' }, 201);
   } catch (err) {
-    // Unique constraint violation (user already exists)
-    return json({ success: false, message: 'User already exists' }, 409);
+    const errorMessage = String(err?.message || err || '');
+    console.error('Signup failed:', errorMessage);
+
+    if (errorMessage.toLowerCase().includes('unique')) {
+      return json({ success: false, message: 'User already exists' }, 409);
+    }
+
+    return json({ success: false, message: 'Unable to create account right now.' }, 500);
   }
 }
 
@@ -105,8 +144,10 @@ async function handleLogin(request, env) {
       return json({ success: false, message: 'Missing email or password' }, 400);
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
-      .bind(email)
+      .bind(normalizedEmail)
       .first();
 
     if (!row) {
@@ -120,6 +161,7 @@ async function handleLogin(request, env) {
 
     return json({ success: true, message: 'Login successful' });
   } catch (err) {
+    console.error('Login failed:', err);
     return json({ success: false, message: 'Internal server error' }, 500);
   }
 }
@@ -133,17 +175,88 @@ async function handleForgot(request, env) {
       return json({ success: false, message: 'Missing email' }, 400);
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const row = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
-      .bind(email)
+      .bind(normalizedEmail)
       .first();
 
     if (!row) {
       return json({ success: false, message: 'Email not found' }, 404);
     }
 
-    // Placeholder: In a real app, send email via Mailgun/SendGrid/etc.
-    return json({ success: true, message: 'Password reset link sent to your email.' });
+    const resetToken = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 30).toISOString();
+
+    await env.DB.prepare(
+      'UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?'
+    )
+      .bind(resetToken, expiresAt, row.id)
+      .run();
+
+    const url = new URL(request.url);
+    const resetLink = `${url.origin}/reset.html?token=${encodeURIComponent(resetToken)}`;
+
+    const emailResult = await sendResetEmail({
+      apiKey: env.RESEND_API_KEY,
+      from: env.RESEND_FROM_EMAIL,
+      to: normalizedEmail,
+      resetLink,
+    });
+
+    return json({
+      success: true,
+      message: emailResult.emailSent
+        ? 'Password reset link sent to your email.'
+        : 'Password reset link created.',
+      resetLink,
+      emailSent: emailResult.emailSent,
+      emailProviderMessage: emailResult.message,
+    });
   } catch (err) {
+    console.error('Forgot password failed:', err);
+    return json({ success: false, message: 'Internal server error' }, 500);
+  }
+}
+
+async function handleResetPassword(request, env) {
+  try {
+    const body = await request.json();
+    const { token, password } = body ?? {};
+
+    if (!token || !password) {
+      return json({ success: false, message: 'Missing reset token or password' }, 400);
+    }
+
+    if (String(password).length < 4) {
+      return json({ success: false, message: 'Password must be at least 4 characters long' }, 400);
+    }
+
+    const row = await env.DB.prepare(
+      'SELECT id, reset_token_expires_at FROM users WHERE reset_token = ?'
+    )
+      .bind(token)
+      .first();
+
+    if (!row) {
+      return json({ success: false, message: 'Reset link is invalid.' }, 400);
+    }
+
+    const expiresAt = Date.parse(row.reset_token_expires_at || '');
+    if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+      return json({ success: false, message: 'Reset link has expired.' }, 400);
+    }
+
+    const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+    await env.DB.prepare(
+      'UPDATE users SET password = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?'
+    )
+      .bind(hashed, row.id)
+      .run();
+
+    return json({ success: true, message: 'Password reset successfully.' });
+  } catch (err) {
+    console.error('Reset password failed:', err);
     return json({ success: false, message: 'Internal server error' }, 500);
   }
 }
@@ -171,4 +284,71 @@ function corsResponse() {
     status: 204,
     headers: corsHeaders(),
   });
+}
+
+async function sendResetEmail({ apiKey, from, to, resetLink }) {
+  if (!apiKey || !from) {
+    return {
+      emailSent: false,
+      message: 'Resend is not configured.',
+    };
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: 'Reset your Fitness Realtors password',
+      html: buildResetEmailHtml(resetLink),
+      text: `Reset your password by opening this link: ${resetLink}`,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Resend email failed:', response.status, errorText);
+    return {
+      emailSent: false,
+      message: 'Resend rejected the email request.',
+    };
+  }
+
+  return {
+    emailSent: true,
+    message: 'Password reset email sent.',
+  };
+}
+
+function buildResetEmailHtml(resetLink) {
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0a2146;">
+      <h2 style="margin-bottom:12px;">Reset your password</h2>
+      <p>We received a request to reset your Fitness Realtors password.</p>
+      <p>
+        <a
+          href="${escapeHtml(resetLink)}"
+          style="display:inline-block;padding:12px 18px;background:#0f8d84;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;"
+        >
+          Reset Password
+        </a>
+      </p>
+      <p>If the button does not work, copy and paste this link into your browser:</p>
+      <p><a href="${escapeHtml(resetLink)}">${escapeHtml(resetLink)}</a></p>
+      <p>This link expires in 30 minutes.</p>
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }

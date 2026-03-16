@@ -252,6 +252,32 @@ h1 {
   background: var(--stage);
 }
 
+.reset-feedback {
+  margin-top: 18px;
+  border: 1px solid #c8d3e3;
+  border-radius: 10px;
+  background: #f7fbff;
+  padding: 16px;
+}
+
+.reset-feedback-message {
+  margin: 0 0 10px;
+  text-align: left;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.reset-link {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.reset-link:hover {
+  text-decoration: underline;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

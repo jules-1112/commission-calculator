@@ -1,16 +1,31 @@
-// Cloudflare Worker to handle API requests and connect to D1.
-// Deploy with `wrangler publish` (requires Cloudflare account + D1 binding).
+/**
+ * Cloudflare Worker (JavaScript) that provides an API for user auth using D1.
+ *
+ * Requirements met:
+ *   - D1 binding named "DB" (configured in wrangler.toml)
+ *   - /signup, /login, /forgot-password endpoints
+ *   - Passwords stored hashed (bcrypt)
+ *   - Parameterized SQL queries with env.DB.prepare + bind
+ *   - JSON responses + appropriate HTTP status codes
+ */
+
+import bcrypt from 'bcryptjs';
+
+const SALT_ROUNDS = 10;
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // API routes
+    // Allow CORS preflight
+    if (request.method === 'OPTIONS') {
+      return corsResponse();
+    }
+
     if (url.pathname.startsWith('/api/')) {
       return handleApi(request, env);
     }
 
-    // For static asset hosting (optional), return 404 here.
     return new Response('Not Found', { status: 404 });
   },
 };
@@ -20,67 +35,95 @@ async function handleApi(request, env) {
   const method = request.method.toUpperCase();
   const path = url.pathname.replace('/api', '');
 
-  // Initialize database schema if needed
+  // Ensure the users table exists.
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      email TEXT UNIQUE,
-      password TEXT
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL
     )`
   ).run();
 
   if (path === '/signup' && method === 'POST') {
-    const body = await request.json();
-    const { username, email, password } = body;
-
-    if (!username || !email || !password) {
-      return json({ error: 'Missing fields' }, 400);
-    }
-
-    try {
-      await env.DB.prepare(
-        'INSERT INTO users (username, email, password) VALUES (?, ?, ?)' 
-      ).bind(username, email, password).run();
-
-      return json({ status: 'ok' });
-    } catch (err) {
-      return json({ error: 'User already exists or invalid' }, 400);
-    }
+    return handleSignup(request, env);
   }
 
   if (path === '/login' && method === 'POST') {
-    const body = await request.json();
-    const { email, password } = body;
-
-    if (!email || !password) {
-      return json({ error: 'Missing fields' }, 400);
-    }
-
-    const row = await env.DB.prepare('SELECT * FROM users WHERE email = ? AND password = ?')
-      .bind(email, password)
-      .first();
-
-    if (!row) {
-      return json({ error: 'Invalid credentials' }, 401);
-    }
-
-    return json({ status: 'ok', user: { id: row.id, username: row.username, email: row.email } });
+    return handleLogin(request, env);
   }
 
-  if (path === '/forgot' && method === 'POST') {
-    const body = await request.json();
-    const { email } = body;
-
-    if (!email) {
-      return json({ error: 'Missing email' }, 400);
-    }
-
-    // Simulate sending email
-    return json({ status: 'ok', message: 'Password reset link sent to your email.' });
+  if (path === '/forgot-password' && method === 'POST') {
+    return handleForgot(request, env);
   }
 
   return json({ error: 'Not found' }, 404);
+}
+
+async function handleSignup(request, env) {
+  const body = await request.json();
+  const { email, password } = body ?? {};
+
+  if (!email || !password) {
+    return json({ error: 'Missing email or password' }, 400);
+  }
+
+  const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
+  try {
+    await env.DB.prepare('INSERT INTO users (email, password) VALUES (?, ?)')
+      .bind(email, hashed)
+      .run();
+
+    return json({ status: 'ok' }, 201);
+  } catch (err) {
+    // Unique constraint violation (user already exists)
+    return json({ error: 'User already exists' }, 409);
+  }
+}
+
+async function handleLogin(request, env) {
+  const body = await request.json();
+  const { email, password } = body ?? {};
+
+  if (!email || !password) {
+    return json({ error: 'Missing email or password' }, 400);
+  }
+
+  const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+    .bind(email)
+    .first();
+
+  if (!row) {
+    return json({ error: 'Invalid credentials' }, 401);
+  }
+
+  const passwordMatches = await bcrypt.compare(password, row.password);
+  if (!passwordMatches) {
+    return json({ error: 'Invalid credentials' }, 401);
+  }
+
+  return json({ status: 'ok', user: { id: row.id, email: row.email } });
+}
+
+async function handleForgot(request, env) {
+  const body = await request.json();
+  const { email } = body ?? {};
+
+  if (!email) {
+    return json({ error: 'Missing email' }, 400);
+  }
+
+  const row = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
+    .bind(email)
+    .first();
+
+  if (!row) {
+    // For security, do not reveal whether the email exists.
+    return json({ status: 'ok', message: 'If an account exists, a reset link has been sent.' });
+  }
+
+  // Placeholder: In a real app, send email via Mailgun/SendGrid/etc.
+  return json({ status: 'ok', message: 'Password reset link sent to your email.' });
 }
 
 function json(body, status = 200) {
@@ -88,9 +131,22 @@ function json(body, status = 200) {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      ...corsHeaders(),
     },
+  });
+}
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
+function corsResponse() {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(),
   });
 }

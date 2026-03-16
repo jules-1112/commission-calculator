@@ -99,7 +99,7 @@
 
         // Sign-Up form submission
         if (signupForm && signupUsername && signupEmail && signupPassword && confirmPassword && signupError) {
-          signupForm.addEventListener('submit', (event) => {
+          signupForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const usernameValue = signupUsername.value.trim();
@@ -117,11 +117,26 @@
               return;
             }
 
-            signupError.hidden = true;
+            try {
+              const response = await fetch('/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailValue, password: passwordValue }),
+              });
+              const data = await response.json();
 
-            // Simulate account creation and redirect to login
-            alert('Account created successfully! Redirecting to login...');
-            window.location.href = 'index.html';
+              if (data.success) {
+                signupError.hidden = true;
+                alert('Account created successfully! Redirecting to login...');
+                window.location.href = 'index.html';
+              } else {
+                signupError.textContent = data.message;
+                signupError.hidden = false;
+              }
+            } catch (err) {
+              signupError.textContent = 'An error occurred. Please try again.';
+              signupError.hidden = false;
+            }
           });
         }
       });

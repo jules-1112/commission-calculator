@@ -53,7 +53,7 @@
 
         // Forgot Password form submission
         if (forgotForm && resetEmail) {
-          forgotForm.addEventListener('submit', (event) => {
+          forgotForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const emailValue = resetEmail.value.trim();
@@ -64,11 +64,24 @@
               return;
             }
 
-            // Simulate sending reset email
-            alert('Password reset link sent to your email!');
-            resetEmail.value = '';
-            // Optionally redirect back
-            window.location.href = 'index.html';
+            try {
+              const response = await fetch('/api/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailValue }),
+              });
+              const data = await response.json();
+
+              if (data.success) {
+                alert('Password reset link sent to your email!');
+                resetEmail.value = '';
+                window.location.href = 'index.html';
+              } else {
+                alert(data.message);
+              }
+            } catch (err) {
+              alert('An error occurred. Please try again.');
+            }
           });
         }
       });

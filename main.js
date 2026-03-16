@@ -39,27 +39,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Login form submission
   if (form && email && password && error) {
-    form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const emailValue = email.value.trim();
       const passwordValue = password.value.trim();
-      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
-      const isValidPassword = passwordValue.length >= 4;
 
-      if (!isValidEmail || !isValidPassword) {
+      if (!emailValue || !passwordValue) {
         setLoginError(true);
         return;
       }
 
-      setLoginError(false);
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailValue, password: passwordValue }),
+        });
+        const data = await response.json();
 
-      if (remember && remember.checked) {
-        localStorage.setItem('fr_saved_email', emailValue);
-      } else {
-        localStorage.removeItem('fr_saved_email');
+        if (data.success) {
+          setLoginError(false);
+          if (remember && remember.checked) {
+            localStorage.setItem('fr_saved_email', emailValue);
+          } else {
+            localStorage.removeItem('fr_saved_email');
+          }
+          showSection(calculatorSection);
+        } else {
+          setLoginError(true);
+          // Optionally, show specific message, but for now, use generic error
+        }
+      } catch (err) {
+        setLoginError(true);
       }
 
-      showSection(calculatorSection);
+      const savedEmail = localStorage.getItem('fr_saved_email');
+      if (savedEmail) {
+        email.value = savedEmail;
+        if (remember) {
+          remember.checked = true;
+        }
+      }
     });
 
     const savedEmail = localStorage.getItem('fr_saved_email');

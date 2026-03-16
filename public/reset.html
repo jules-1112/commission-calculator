@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitness Realtors | Reset Password</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="brand-bar">
+      <div class="brand-wrap">
+        <img
+          class="brand-logo"
+          src="assets/fitness-realtors-logo.png"
+          alt="Fitness Realtors logo"
+        />
+        <div class="brand-text">Fitness Realtors</div>
+      </div>
+    </header>
+
+    <section id="reset-section" class="section">
+      <div class="animated-background"></div>
+      <main class="login-stage">
+        <section class="signup-card">
+          <h2>Create a New Password</h2>
+          <p>Enter a new password for your account.</p>
+          <form id="reset-form" class="signup-form">
+            <label for="new-password">New Password</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">*</span>
+              <input
+                id="new-password"
+                type="password"
+                name="newPassword"
+                placeholder="Enter your new password"
+                required
+              />
+            </div>
+
+            <label for="confirm-new-password">Confirm Password</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">*</span>
+              <input
+                id="confirm-new-password"
+                type="password"
+                name="confirmNewPassword"
+                placeholder="Confirm your new password"
+                required
+              />
+            </div>
+
+            <button class="sign-up-btn" type="submit">Reset Password</button>
+            <p id="reset-error" class="signup-error" hidden></p>
+          </form>
+          <p class="switch-link"><a href="index.html">Back to login</a></p>
+        </section>
+      </main>
+    </section>
+
+    <script src="auth.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const resetForm = document.getElementById('reset-form');
+        const newPassword = document.getElementById('new-password');
+        const confirmNewPassword = document.getElementById('confirm-new-password');
+        const resetError = document.getElementById('reset-error');
+        const token = new URLSearchParams(window.location.search).get('token');
+
+        if (!token) {
+          resetError.textContent = 'Reset link is missing or invalid.';
+          resetError.hidden = false;
+          return;
+        }
+
+        resetForm?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          const passwordValue = newPassword.value;
+          const confirmValue = confirmNewPassword.value;
+
+          if (passwordValue.length < 4) {
+            resetError.textContent = 'Password must be at least 4 characters long.';
+            resetError.hidden = false;
+            return;
+          }
+
+          if (passwordValue !== confirmValue) {
+            resetError.textContent = 'Passwords do not match.';
+            resetError.hidden = false;
+            return;
+          }
+
+          try {
+            const data = await FitnessRealtorsAuth.resetPassword({
+              token,
+              password: passwordValue,
+            });
+
+            if (data.success) {
+              resetError.hidden = true;
+              alert('Password updated successfully. Please sign in.');
+              window.location.href = 'index.html';
+              return;
+            }
+
+            resetError.textContent = data.message || 'Unable to reset password.';
+            resetError.hidden = false;
+          } catch (error) {
+            resetError.textContent = 'An error occurred. Please try again.';
+            resetError.hidden = false;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

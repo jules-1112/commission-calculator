@@ -4,8 +4,9 @@
   "description": "Fitness Realtors authentication system with Cloudflare Workers and D1",
   "main": "worker.js",
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "sync:public": "powershell -ExecutionPolicy Bypass -File ./sync-public.ps1",
+    "deploy": "npm run sync:public && wrangler deploy",
+    "dev": "npm run sync:public && wrangler dev"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"

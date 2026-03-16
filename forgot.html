@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitness Realtors | Forgot Password</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="brand-bar">
+      <div class="brand-wrap">
+        <img
+          class="brand-logo"
+          src="assets/fitness-realtors-logo.png"
+          alt="Fitness Realtors logo"
+        />
+        <div class="brand-text">Fitness Realtors</div>
+      </div>
+    </header>
+
+    <!-- Forgot Password Section -->
+    <section id="forgot-section" class="section">
+      <!-- Animated background -->
+      <div class="animated-background"></div>
+      <main class="login-stage">
+        <section class="forgot-password-card">
+          <h2>Reset Your Password</h2>
+          <p>Enter your email address and we'll send you a link to reset your password.</p>
+          <form id="forgot-form" class="forgot-form">
+            <label for="reset-email">Email Address</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">@</span>
+              <input id="reset-email" type="email" name="resetEmail" placeholder="Enter your email" required />
+            </div>
+            <button type="submit" class="reset-btn">Send Reset Link</button>
+            <button type="button" id="back-to-login" class="back-btn">Back to Login</button>
+          </form>
+        </section>
+      </main>
+    </section>
+
+    <script>
+      // Forgot Password form logic for forgot.html
+      document.addEventListener('DOMContentLoaded', function () {
+        const forgotForm = document.getElementById('forgot-form');
+        const resetEmail = document.getElementById('reset-email');
+        const backToLoginBtn = document.getElementById('back-to-login');
+
+        // Back to login
+        backToLoginBtn?.addEventListener('click', () => {
+          window.location.href = 'index.html';
+        });
+
+        // Forgot Password form submission
+        if (forgotForm && resetEmail) {
+          forgotForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const emailValue = resetEmail.value.trim();
+            const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+
+            if (!isValidEmail) {
+              alert('Please enter a valid email address.');
+              return;
+            }
+
+            // Simulate sending reset email
+            alert('Password reset link sent to your email!');
+            resetEmail.value = '';
+            // Optionally redirect back
+            window.location.href = 'index.html';
+          });
+        }
+      });
+    </script>
+  </body>
+</html></content>
+<parameter name="filePath">d:\projects\forgot.html

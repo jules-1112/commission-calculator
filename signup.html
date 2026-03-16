@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitness Realtors | Sign Up</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="brand-bar">
+      <div class="brand-wrap">
+        <img
+          class="brand-logo"
+          src="assets/fitness-realtors-logo.png"
+          alt="Fitness Realtors logo"
+        />
+        <div class="brand-text">Fitness Realtors</div>
+      </div>
+    </header>
+
+    <!-- Sign-Up Section -->
+    <section id="signup-section" class="section">
+      <!-- Animated background -->
+      <div class="animated-background"></div>
+      <main class="login-stage">
+        <section class="signup-card">
+          <h2>Sign Up</h2>
+          <p>Create your account to access the commission calculator</p>
+          <form id="signup-form" class="signup-form">
+            <label for="signup-username">Username</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">@</span>
+              <input id="signup-username" type="text" name="username" placeholder="Enter your username" required />
+            </div>
+
+            <label for="signup-email">Email Address</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">@</span>
+              <input id="signup-email" type="email" name="email" placeholder="Enter your email" required />
+            </div>
+
+            <label for="signup-password">Password</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">*</span>
+              <input
+                id="signup-password"
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                required
+              />
+              <button class="toggle-visibility" type="button" aria-label="Show password">
+                Show
+              </button>
+            </div>
+
+            <label for="confirm-password">Confirm Password</label>
+            <div class="field-wrap">
+              <span class="field-icon" aria-hidden="true">*</span>
+              <input
+                id="confirm-password"
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+
+            <button class="sign-up-btn" type="submit">Sign Up</button>
+            <p id="signup-error" class="signup-error" hidden>
+              Please fill in all fields correctly.
+            </p>
+          </form>
+          <p class="switch-link">Already have an account? <a href="index.html">Log in</a></p>
+        </section>
+      </main>
+    </section>
+
+    <script>
+      // Sign-Up form logic for signup.html
+      document.addEventListener('DOMContentLoaded', function () {
+        const signupForm = document.getElementById('signup-form');
+        const signupUsername = document.getElementById('signup-username');
+        const signupEmail = document.getElementById('signup-email');
+        const signupPassword = document.getElementById('signup-password');
+        const confirmPassword = document.getElementById('confirm-password');
+        const signupError = document.getElementById('signup-error');
+        const signupToggle = document.querySelector('.toggle-visibility');
+
+        // Toggle password visibility
+        if (signupToggle && signupPassword) {
+          signupToggle.addEventListener('click', () => {
+            const isHidden = signupPassword.type === 'password';
+            signupPassword.type = isHidden ? 'text' : 'password';
+            signupToggle.textContent = isHidden ? 'Hide' : 'Show';
+            signupToggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+          });
+        }
+
+        // Sign-Up form submission
+        if (signupForm && signupUsername && signupEmail && signupPassword && confirmPassword && signupError) {
+          signupForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const usernameValue = signupUsername.value.trim();
+            const emailValue = signupEmail.value.trim();
+            const passwordValue = signupPassword.value;
+            const confirmValue = confirmPassword.value;
+
+            const isValidUsername = usernameValue.length > 0;
+            const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+            const isValidPassword = passwordValue.length >= 4;
+            const passwordsMatch = passwordValue === confirmValue;
+
+            if (!isValidUsername || !isValidEmail || !isValidPassword || !passwordsMatch) {
+              signupError.hidden = false;
+              return;
+            }
+
+            signupError.hidden = true;
+
+            // Simulate account creation and redirect to login
+            alert('Account created successfully! Redirecting to login...');
+            window.location.href = 'index.html';
+          });
+        }
+      });
+    </script>
+  </body>
+</html></content>
+<parameter name="filePath">d:\projects\signup.html

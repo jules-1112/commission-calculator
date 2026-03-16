@@ -1,3 +1,81 @@
+// Merged JavaScript from index.html and script.js
+
+// Navigation and login logic
+// All DOM wiring is performed after the DOM is ready to avoid missing elements.
+document.addEventListener('DOMContentLoaded', function () {
+  const loginSection = document.getElementById('login-section');
+  const calculatorSection = document.getElementById('calculator-section');
+
+  const logoutBtn = document.getElementById('logout-btn');
+
+  const form = document.getElementById('login-form');
+  const toggle = document.querySelector('.toggle-visibility');
+  const password = document.getElementById('password');
+  const email = document.getElementById('email');
+  const remember = document.getElementById('remember');
+  const error = document.getElementById('login-error');
+
+  function showSection(section) {
+    [loginSection, calculatorSection].forEach((s) => s.classList.add('hidden'));
+    section.classList.remove('hidden');
+  }
+
+  function setLoginError(isVisible) {
+    if (!error) return;
+    error.hidden = !isVisible;
+  }
+
+  logoutBtn?.addEventListener('click', () => showSection(loginSection));
+
+  // Toggle password visibility for login
+  if (toggle && password) {
+    toggle.addEventListener('click', () => {
+      const isHidden = password.type === 'password';
+      password.type = isHidden ? 'text' : 'password';
+      toggle.textContent = isHidden ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    });
+  }
+
+  // Login form submission
+  if (form && email && password && error) {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const emailValue = email.value.trim();
+      const passwordValue = password.value.trim();
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+      const isValidPassword = passwordValue.length >= 4;
+
+      if (!isValidEmail || !isValidPassword) {
+        setLoginError(true);
+        return;
+      }
+
+      setLoginError(false);
+
+      if (remember && remember.checked) {
+        localStorage.setItem('fr_saved_email', emailValue);
+      } else {
+        localStorage.removeItem('fr_saved_email');
+      }
+
+      showSection(calculatorSection);
+    });
+
+    const savedEmail = localStorage.getItem('fr_saved_email');
+    if (savedEmail) {
+      email.value = savedEmail;
+      if (remember) {
+        remember.checked = true;
+      }
+    }
+  }
+
+  // Initially show login
+  showSection(loginSection);
+});
+
+// Calculator logic from script.js
 const tierRules = [
   {
     tier: "Bronze",
@@ -394,6 +472,7 @@ async function exportElementAsPdf(element, fileName) {
   doc.save(fileName);
 }
 
+// Rest of script.js logic
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("calculator-form");
   const commissionPageSection = document.getElementById("commission-page");
@@ -501,200 +580,200 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="tier-row-label">Team Split Adjustment</div>
         <div class="tier-row-label">Personal Sphere Adjustment</div>
       </div>
-
       <div class="tier-table-wrap">
-        <table class="tier-table" aria-label="Quarterly tier split table">
+        <table class="tier-table">
           <thead>
             <tr>
-              ${tierRules
-                .map(
-                  (rule) => `
-                    <th class="tier-col tier-${rule.tier.toLowerCase()}">${rule.tier}</th>
-                  `
-                )
-                .join("")}
+              <th>Bronze</th>
+              <th>Silver</th>
+              <th>Gold</th>
+              <th>Platinum</th>
+              <th>Diamond</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              ${tierRules
-                .map(
-                  (rule) => `
-                    <td class="tier-col tier-${rule.tier.toLowerCase()}">${rule.closings}</td>
-                  `
-                )
-                .join("")}
+              <td>3</td>
+              <td>4-5</td>
+              <td>6-7</td>
+              <td>8-9</td>
+              <td>10+</td>
             </tr>
             <tr>
-              ${tierRules
-                .map(
-                  (rule) => `
-                    <td class="tier-col tier-${rule.tier.toLowerCase()}">${rule.preApproval}</td>
-                  `
-                )
-                .join("")}
+              <td>3</td>
+              <td>4-5</td>
+              <td>6-7</td>
+              <td>8-9</td>
+              <td>10+</td>
             </tr>
             <tr>
-              ${tierRules
-                .map(
-                  (rule) => `
-                    <td class="tier-col tier-${rule.tier.toLowerCase()}">
-                      ${formatSplitStack(rule.teamSplitTeamPct, rule.teamSplitAgentPct)}
-                    </td>
-                  `
-                )
-                .join("")}
+              <td>${formatSplitStack(50, 50)}</td>
+              <td>${formatSplitStack(50, 50)}</td>
+              <td>${formatSplitStack(50, 50)}</td>
+              <td>${formatSplitStack(50, 50)}</td>
+              <td>${formatSplitStack(50, 50)}</td>
             </tr>
             <tr>
-              ${tierRules
-                .map(
-                  (rule) => `
-                    <td class="tier-col tier-${rule.tier.toLowerCase()}">
-                      ${formatSplitStack(rule.personalSphereTeamPct, rule.personalSphereAgentPct)}
-                    </td>
-                  `
-                )
-                .join("")}
+              <td>${formatSplitStack(25, 75)}</td>
+              <td>${formatSplitStack(20, 80)}</td>
+              <td>${formatSplitStack(15, 85)}</td>
+              <td>${formatSplitStack(10, 90)}</td>
+              <td>${formatSplitStack(5, 95)}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      </div>
     </div>
   `;
 
-  viewPage2Button.addEventListener("click", () => {
-    isTierGuideVisible = !isTierGuideVisible;
-    tierGuideSection.hidden = !isTierGuideVisible;
-    viewPage2Button.textContent = isTierGuideVisible
-      ? "Hide Page 2: Tier Guide"
-      : "Page 2: Tier Guide";
-  });
-
-  showCommissionPageButton.addEventListener("click", () => {
-    commissionPageSection.hidden = false;
-    mortgagePageSection.hidden = true;
+  function showCommissionPage() {
+    commissionPageSection.style.display = "block";
+    mortgagePageSection.style.display = "none";
     showCommissionPageButton.classList.add("active");
     showMortgagePageButton.classList.remove("active");
-  });
+  }
 
-  showMortgagePageButton.addEventListener("click", () => {
-    commissionPageSection.hidden = true;
-    mortgagePageSection.hidden = false;
-    showMortgagePageButton.classList.add("active");
+  function showMortgagePage() {
+    commissionPageSection.style.display = "none";
+    mortgagePageSection.style.display = "block";
     showCommissionPageButton.classList.remove("active");
-  });
+    showMortgagePageButton.classList.add("active");
+  }
+
+  showCommissionPageButton.addEventListener("click", showCommissionPage);
+  showMortgagePageButton.addEventListener("click", showMortgagePage);
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const formData = new FormData(form);
-    const salePrice = Number(formData.get("salePrice"));
-    const commissionRate = Number(formData.get("commissionRate"));
-    const brokerSplit = Number(formData.get("brokerSplit"));
-    const closingsPerQuarter = Number(formData.get("closingsPerQuarter"));
-    const selectedTierRule = getTierRuleByClosings(closingsPerQuarter);
+    const salePrice = Number(document.getElementById("sale-price").value);
+    const commissionRate = Number(document.getElementById("commission-rate").value);
+    const brokerSplit = Number(document.getElementById("broker-split").value);
+    const closingsPerQuarter = Number(document.getElementById("closings-per-quarter").value);
 
-    if (
-      Number.isNaN(salePrice) ||
-      Number.isNaN(commissionRate) ||
-      Number.isNaN(brokerSplit) ||
-      Number.isNaN(closingsPerQuarter) ||
-      !selectedTierRule
-    ) {
-      showStartupError("Invalid input values. Please enter numbers in all fields.");
+    if (salePrice <= 0 || commissionRate <= 0 || brokerSplit < 0 || brokerSplit > 100 || closingsPerQuarter < 0) {
+      alert("Please enter valid values.");
       return;
     }
 
-    const agentCommission = salePrice * (commissionRate / 100);
-    const brokerAmount = agentCommission * (brokerSplit / 100);
-    const netIncome = agentCommission - brokerAmount;
-    const teamSplitTeamAmount = agentCommission * (selectedTierRule.teamSplitTeamPct / 100);
-    const teamSplitAgentAmount = agentCommission * (selectedTierRule.teamSplitAgentPct / 100);
-    const personalSphereTeamAmount =
-      agentCommission * (selectedTierRule.personalSphereTeamPct / 100);
-    const personalSphereAgentAmount =
-      agentCommission * (selectedTierRule.personalSphereAgentPct / 100);
+    const grossCommission = salePrice * (commissionRate / 100);
+    const brokerAmount = grossCommission * (brokerSplit / 100);
+    const agentCommission = grossCommission - brokerAmount;
 
+    const tierRule = getTierRuleByClosings(closingsPerQuarter);
+    const teamSplitAdjustment = agentCommission * (tierRule.teamSplitTeamPct / 100);
+    const personalSphereAdjustment = agentCommission * (tierRule.personalSphereTeamPct / 100);
+    const netIncome = agentCommission - teamSplitAdjustment - personalSphereAdjustment;
+
+    agentCommissionEl.textContent = formatCurrency(agentCommission);
+    brokerAmountEl.textContent = formatCurrency(brokerAmount);
+    netIncomeEl.textContent = formatCurrency(netIncome);
+    tierLevelResultEl.textContent = tierRule.tier;
+    teamSplitAdjustmentEl.textContent = formatCurrency(teamSplitAdjustment);
+    personalSphereAdjustmentEl.textContent = formatCurrency(personalSphereAdjustment);
+
+    downloadPdfButton.disabled = false;
     latestCalculation = {
       salePrice,
       commissionRate,
       brokerSplit,
       closingsPerQuarter,
-      tierLevel: selectedTierRule.tier,
-      agentCommission,
+      grossCommission,
       brokerAmount,
+      agentCommission,
+      tierRule,
+      teamSplitAdjustment,
+      personalSphereAdjustment,
       netIncome,
-      teamSplitTeamPct: selectedTierRule.teamSplitTeamPct,
-      teamSplitAgentPct: selectedTierRule.teamSplitAgentPct,
-      personalSphereTeamPct: selectedTierRule.personalSphereTeamPct,
-      personalSphereAgentPct: selectedTierRule.personalSphereAgentPct,
-      teamSplitTeamAmount,
-      teamSplitAgentAmount,
-      personalSphereTeamAmount,
-      personalSphereAgentAmount,
     };
+  });
 
-    agentCommissionEl.textContent = formatCurrency(agentCommission);
-    brokerAmountEl.textContent = formatCurrency(brokerAmount);
-    netIncomeEl.textContent = formatCurrency(netIncome);
-    tierLevelResultEl.textContent = selectedTierRule.tier;
-    teamSplitAdjustmentEl.textContent = `Team ${formatCurrency(teamSplitTeamAmount)} | Agent ${formatCurrency(teamSplitAgentAmount)}`;
-    personalSphereAdjustmentEl.textContent = `Team ${formatCurrency(personalSphereTeamAmount)} | Agent ${formatCurrency(personalSphereAgentAmount)}`;
-    downloadPdfButton.disabled = false;
+  downloadPdfButton.addEventListener("click", () => {
+    if (!latestCalculation) {
+      alert("Please calculate first.");
+      return;
+    }
+    exportElementAsPdf(commissionSurface, "commission-calculation.pdf");
+  });
+
+  viewPage2Button.addEventListener("click", () => {
+    isTierGuideVisible = !isTierGuideVisible;
+    tierGuideSection.style.display = isTierGuideVisible ? "block" : "none";
+    viewPage2Button.textContent = isTierGuideVisible ? "Hide Page 2: Tier Guide" : "Page 2: Tier Guide";
   });
 
   mortgageForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const mortgageFormData = new FormData(mortgageForm);
-    const loanAmount = Number(mortgageFormData.get("loanAmount"));
-    const annualInterestRate = Number(mortgageFormData.get("annualInterestRate"));
-    const loanTermYears = Number(mortgageFormData.get("loanTermYears"));
-    const paymentStartDateValue = String(mortgageFormData.get("paymentStartDate"));
-    const extraPayment = Number(mortgageFormData.get("extraPayment"));
-    const paymentStartDate = parseLocalDateInput(paymentStartDateValue);
+    const loanAmount = Number(document.getElementById("loan-amount").value);
+    const annualInterestRate = Number(document.getElementById("annual-interest-rate").value);
+    const loanTermYears = Number(document.getElementById("loan-term-years").value);
+    const paymentStartDate = parseLocalDateInput(document.getElementById("payment-start-date").value);
+    const extraPayment = Number(document.getElementById("extra-payment").value);
 
-    if (
-      Number.isNaN(loanAmount) ||
-      Number.isNaN(annualInterestRate) ||
-      Number.isNaN(loanTermYears) ||
-      Number.isNaN(extraPayment) ||
-      !paymentStartDate ||
-      Number.isNaN(paymentStartDate.getTime()) ||
-      loanAmount <= 0 ||
-      loanTermYears <= 0 ||
-      annualInterestRate < 0 ||
-      extraPayment < 0
-    ) {
-      showStartupError("Invalid mortgage values. Please enter valid numbers.");
+    if (loanAmount <= 0 || annualInterestRate < 0 || loanTermYears <= 0 || !paymentStartDate) {
+      alert("Please enter valid values.");
       return;
     }
 
     const monthlyRate = annualInterestRate / 100 / 12;
-    const totalPayments = loanTermYears * 12;
-    let monthlyPayment = 0;
+    const numPayments = loanTermYears * 12;
+    const monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
 
-    if (monthlyRate === 0) {
-      monthlyPayment = loanAmount / totalPayments;
-    } else {
-      const factor = Math.pow(1 + monthlyRate, totalPayments);
-      monthlyPayment = (loanAmount * monthlyRate * factor) / (factor - 1);
-    }
+    monthlyPaymentEl.textContent = formatCurrency(monthlyPayment);
+    downloadMortgagePdfButton.disabled = false;
+    toggleAmortizationButton.disabled = false;
 
-    const amortization = buildAmortizationSchedule(
+    latestMortgageCalculation = {
       loanAmount,
       annualInterestRate,
       loanTermYears,
-      monthlyPayment,
       paymentStartDate,
-      extraPayment
-    );
+      extraPayment,
+      monthlyPayment,
+    };
+  });
 
-    amortizationBody.innerHTML = amortization.rows
-      .map(
-        (row) => `
-        <tr>
+  downloadMortgagePdfButton.addEventListener("click", () => {
+    if (!latestMortgageCalculation) {
+      alert("Please calculate first.");
+      return;
+    }
+    exportElementAsPdf(mortgageSurface, "mortgage-calculation.pdf");
+  });
+
+  toggleAmortizationButton.addEventListener("click", () => {
+    if (!latestMortgageCalculation) {
+      alert("Please calculate first.");
+      return;
+    }
+
+    isAmortizationVisible = !isAmortizationVisible;
+    amortizationSection.style.display = isAmortizationVisible ? "block" : "none";
+    toggleAmortizationButton.textContent = isAmortizationVisible ? "Hide Amortization Schedule" : "Show Amortization Schedule";
+
+    if (isAmortizationVisible) {
+      const { loanAmount, annualInterestRate, loanTermYears, paymentStartDate, extraPayment, monthlyPayment } = latestMortgageCalculation;
+      const schedule = buildAmortizationSchedule(loanAmount, annualInterestRate, loanTermYears, monthlyPayment, paymentStartDate, extraPayment);
+
+      amLoanAmountEl.textContent = formatCurrency(loanAmount);
+      amInterestRateEl.textContent = formatPercent(annualInterestRate);
+      amLoanTermEl.textContent = loanTermYears;
+      amPaymentsPerYearEl.textContent = "12";
+      amPaymentStartDateEl.textContent = formatDate(paymentStartDate);
+      amExtraPaymentEl.textContent = formatCurrency(extraPayment);
+      amTotalEarlyPaymentsAppliedEl.textContent = formatCurrency(schedule.totalEarlyPaymentsApplied);
+      amTotalEarlyPaymentsEl.textContent = formatCurrency(schedule.totalEarlyPaymentsApplied);
+      amScheduledPaymentEl.textContent = formatCurrency(monthlyPayment);
+      amScheduledCountEl.textContent = schedule.scheduledPayments;
+      amActualCountEl.textContent = schedule.actualPayments;
+      amYearsSavedEl.textContent = schedule.yearsSaved.toFixed(2);
+      amTotalInterestEl.textContent = formatCurrency(schedule.totalInterest);
+
+      amortizationBody.innerHTML = "";
+      schedule.rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
           <td>${row.paymentNo}</td>
           <td>${row.paymentDate}</td>
           <td>${formatCurrency(row.beginningBalance)}</td>
@@ -705,197 +784,19 @@ document.addEventListener("DOMContentLoaded", () => {
           <td>${formatCurrency(row.interest)}</td>
           <td>${formatCurrency(row.endingBalance)}</td>
           <td>${formatCurrency(row.cumulativeInterest)}</td>
-        </tr>
-      `
-      )
-      .join("");
+        `;
+        amortizationBody.appendChild(tr);
+      });
 
-    amLoanAmountEl.textContent = formatCurrency(loanAmount);
-    amInterestRateEl.textContent = formatPercent(annualInterestRate);
-    amLoanTermEl.textContent = String(loanTermYears);
-    amPaymentsPerYearEl.textContent = "12";
-    amPaymentStartDateEl.textContent = formatDate(paymentStartDate);
-    amExtraPaymentEl.textContent = formatCurrency(extraPayment);
-    amTotalEarlyPaymentsAppliedEl.textContent = formatCurrency(
-      amortization.totalEarlyPaymentsApplied
-    );
-    amTotalEarlyPaymentsEl.textContent = formatCurrency(amortization.totalEarlyPaymentsApplied);
-    amScheduledPaymentEl.textContent = formatCurrency(monthlyPayment);
-    amScheduledCountEl.textContent = String(amortization.scheduledPayments);
-    amActualCountEl.textContent = String(amortization.actualPayments);
-    amYearsSavedEl.textContent = amortization.yearsSaved.toFixed(2);
-    amTotalInterestEl.textContent = formatCurrency(amortization.totalInterest);
-
-    latestMortgageCalculation = {
-      loanAmount,
-      annualInterestRate,
-      loanTermYears,
-      paymentStartDate: formatDate(paymentStartDate),
-      extraPayment,
-      totalEarlyPayments: amortization.totalEarlyPaymentsApplied,
-      monthlyPayment,
-      amortization,
-    };
-    monthlyPaymentEl.textContent = formatCurrency(monthlyPayment);
-    downloadMortgagePdfButton.disabled = false;
-    downloadAmortizationPdfButton.disabled = false;
-    toggleAmortizationButton.disabled = false;
-    isAmortizationVisible = false;
-    amortizationSection.hidden = true;
-    toggleAmortizationButton.textContent = "Show Amortization Schedule";
-  });
-
-  toggleAmortizationButton.addEventListener("click", () => {
-    if (!latestMortgageCalculation) {
-      return;
-    }
-
-    isAmortizationVisible = !isAmortizationVisible;
-    amortizationSection.hidden = !isAmortizationVisible;
-    toggleAmortizationButton.textContent = isAmortizationVisible
-      ? "Hide Amortization Schedule"
-      : "Show Amortization Schedule";
-  });
-
-  downloadPdfButton.addEventListener("click", async () => {
-    try {
-      if (!latestCalculation) {
-        return;
-      }
-      await exportElementAsPdf(commissionPageSection, "commission-calculator-view.pdf");
-    } catch (error) {
-      console.error("Failed to export commission view:", error);
-      alert("Something went wrong while creating the commission PDF.");
-    }
-  });
-
-  downloadMortgagePdfButton.addEventListener("click", async () => {
-    try {
-      if (!latestMortgageCalculation) {
-        return;
-      }
-      await exportElementAsPdf(mortgagePageSection, "mortgage-calculator-view.pdf");
-    } catch (error) {
-      console.error("Failed to export mortgage view:", error);
-      alert("Something went wrong while creating the mortgage PDF.");
+      downloadAmortizationPdfButton.disabled = false;
     }
   });
 
   downloadAmortizationPdfButton.addEventListener("click", () => {
-    try {
-      if (!latestMortgageCalculation || !latestMortgageCalculation.amortization) {
-        return;
-      }
-
-      if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("PDF library did not load. Please refresh and try again.");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      const rows = latestMortgageCalculation.amortization.rows;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const top = 10;
-      const rowHeight = 6;
-      const headerRowHeight = 10;
-      const headers = [
-        "PMT No",
-        "Payment Date",
-        "Beginning Balance",
-        "Scheduled Payment",
-        "Extra Payment",
-        "Total Payment",
-        "Principal",
-        "Interest",
-        "Ending Balance",
-        "Cumulative Interest",
-      ];
-      const colWidths = [12, 22, 30, 24, 22, 24, 22, 20, 30, 25];
-      const tableWidth = colWidths.reduce((sum, width) => sum + width, 0);
-      const left = (pageWidth - tableWidth) / 2;
-
-      function drawHeader(y) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(10);
-        doc.text("Amortization Schedule", pageWidth / 2, y, { align: "center" });
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
-        doc.text(
-          `Loan: ${formatCurrency(latestMortgageCalculation.loanAmount)} | Rate: ${latestMortgageCalculation.annualInterestRate}% | Term: ${latestMortgageCalculation.loanTermYears} years`,
-          pageWidth / 2,
-          y + 5,
-          { align: "center" }
-        );
-        doc.text(
-          `Start Date: ${latestMortgageCalculation.paymentStartDate} | Extra Payment: ${formatCurrency(latestMortgageCalculation.extraPayment)}`,
-          pageWidth / 2,
-          y + 10,
-          { align: "center" }
-        );
-      }
-
-      function drawTableHeader(y) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        let x = left;
-        headers.forEach((header, idx) => {
-          doc.rect(x, y, colWidths[idx], headerRowHeight);
-          const headerLines = doc.splitTextToSize(header, colWidths[idx] - 2);
-          doc.text(headerLines, x + colWidths[idx] / 2, y + 3.8, { align: "center" });
-          x += colWidths[idx];
-        });
-      }
-
-      function drawRow(row, y) {
-        const values = [
-          String(row.paymentNo),
-          row.paymentDate,
-          formatCurrency(row.beginningBalance),
-          formatCurrency(row.scheduledPayment),
-          formatCurrency(row.extraPayment),
-          formatCurrency(row.totalPayment),
-          formatCurrency(row.principal),
-          formatCurrency(row.interest),
-          formatCurrency(row.endingBalance),
-          formatCurrency(row.cumulativeInterest),
-        ];
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.4);
-        let x = left;
-        values.forEach((value, idx) => {
-          doc.rect(x, y, colWidths[idx], rowHeight);
-          doc.text(value, x + colWidths[idx] / 2, y + 4.2, { align: "center" });
-          x += colWidths[idx];
-        });
-      }
-
-      let y = top;
-      drawHeader(y);
-      y += 16;
-      drawTableHeader(y);
-      y += headerRowHeight;
-
-      rows.forEach((row) => {
-        if (y + rowHeight > pageHeight - 10) {
-          doc.addPage("a4", "landscape");
-          y = top;
-          drawHeader(y);
-          y += 16;
-          drawTableHeader(y);
-          y += headerRowHeight;
-        }
-        drawRow(row, y);
-        y += rowHeight;
-      });
-
-      doc.save("mortgage-amortization-schedule.pdf");
-    } catch (error) {
-      console.error("Failed to generate amortization PDF:", error);
-      alert("Something went wrong while creating the amortization PDF.");
+    if (!isAmortizationVisible) {
+      alert("Please show the amortization schedule first.");
+      return;
     }
+    exportElementAsPdf(amortizationSection, "mortgage-amortization.pdf");
   });
 });
-

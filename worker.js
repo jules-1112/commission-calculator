@@ -7,6 +7,7 @@
  *   - Passwords stored hashed (bcrypt)
  *   - Parameterized SQL queries with env.DB.prepare + bind
  *   - JSON responses + appropriate HTTP status codes
+ *   - Response format: { success: true/false, message }
  */
 
 import bcrypt from 'bcryptjs';
@@ -56,74 +57,81 @@ async function handleApi(request, env) {
     return handleForgot(request, env);
   }
 
-  return json({ error: 'Not found' }, 404);
+  return json({ success: false, message: 'Endpoint not found' }, 404);
 }
 
 async function handleSignup(request, env) {
-  const body = await request.json();
-  const { email, password } = body ?? {};
-
-  if (!email || !password) {
-    return json({ error: 'Missing email or password' }, 400);
-  }
-
-  const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-
   try {
+    const body = await request.json();
+    const { email, password } = body ?? {};
+
+    if (!email || !password) {
+      return json({ success: false, message: 'Missing email or password' }, 400);
+    }
+
+    const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
     await env.DB.prepare('INSERT INTO users (email, password) VALUES (?, ?)')
       .bind(email, hashed)
       .run();
 
-    return json({ status: 'ok' }, 201);
+    return json({ success: true, message: 'User created successfully' }, 201);
   } catch (err) {
     // Unique constraint violation (user already exists)
-    return json({ error: 'User already exists' }, 409);
+    return json({ success: false, message: 'User already exists' }, 409);
   }
 }
 
 async function handleLogin(request, env) {
-  const body = await request.json();
-  const { email, password } = body ?? {};
+  try {
+    const body = await request.json();
+    const { email, password } = body ?? {};
 
-  if (!email || !password) {
-    return json({ error: 'Missing email or password' }, 400);
+    if (!email || !password) {
+      return json({ success: false, message: 'Missing email or password' }, 400);
+    }
+
+    const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!row) {
+      return json({ success: false, message: 'Invalid credentials' }, 401);
+    }
+
+    const passwordMatches = await bcrypt.compare(password, row.password);
+    if (!passwordMatches) {
+      return json({ success: false, message: 'Invalid credentials' }, 401);
+    }
+
+    return json({ success: true, message: 'Login successful' });
+  } catch (err) {
+    return json({ success: false, message: 'Internal server error' }, 500);
   }
-
-  const row = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
-    .bind(email)
-    .first();
-
-  if (!row) {
-    return json({ error: 'Invalid credentials' }, 401);
-  }
-
-  const passwordMatches = await bcrypt.compare(password, row.password);
-  if (!passwordMatches) {
-    return json({ error: 'Invalid credentials' }, 401);
-  }
-
-  return json({ status: 'ok', user: { id: row.id, email: row.email } });
 }
 
 async function handleForgot(request, env) {
-  const body = await request.json();
-  const { email } = body ?? {};
+  try {
+    const body = await request.json();
+    const { email } = body ?? {};
 
-  if (!email) {
-    return json({ error: 'Missing email' }, 400);
+    if (!email) {
+      return json({ success: false, message: 'Missing email' }, 400);
+    }
+
+    const row = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!row) {
+      return json({ success: false, message: 'Email not found' }, 404);
+    }
+
+    // Placeholder: In a real app, send email via Mailgun/SendGrid/etc.
+    return json({ success: true, message: 'Password reset link sent to your email.' });
+  } catch (err) {
+    return json({ success: false, message: 'Internal server error' }, 500);
   }
-
-  const row = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
-    .bind(email)
-    .first();
-
-  if (!row) {
-    // For security, do not reveal whether the email exists.
-    return json({ status: 'ok', message: 'If an account exists, a reset link has been sent.' });
-  }
-
-  // Placeholder: In a real app, send email via Mailgun/SendGrid/etc.
-  return json({ status: 'ok', message: 'Password reset link sent to your email.' });
 }
 
 function json(body, status = 200) {

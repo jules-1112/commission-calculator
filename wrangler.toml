@@ -10,7 +10,7 @@ account_id = "YOUR_ACCOUNT_ID"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "fitness_realtors_db"
+database_name = "my_d1_database"
 
 [build]
 command = ""

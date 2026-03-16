@@ -39,6 +39,7 @@
       </main>
     </section>
 
+    <script src="auth.js"></script>
     <script>
       // Forgot Password form logic for forgot.html
       document.addEventListener('DOMContentLoaded', function () {
@@ -65,19 +66,14 @@
             }
 
             try {
-              const response = await fetch('/api/forgot-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailValue }),
-              });
-              const data = await response.json();
+              const data = await FitnessRealtorsAuth.forgotPassword({ email: emailValue });
 
               if (data.success) {
-                alert('Password reset link sent to your email!');
+                alert(data.message || 'Password reset link sent to your email!');
                 resetEmail.value = '';
                 window.location.href = 'index.html';
               } else {
-                alert(data.message);
+                alert(data.message || 'Unable to process that email address.');
               }
             } catch (err) {
               alert('An error occurred. Please try again.');
@@ -87,5 +83,4 @@
       });
     </script>
   </body>
-</html></content>
-<parameter name="filePath">d:\projects\forgot.html
+</html>

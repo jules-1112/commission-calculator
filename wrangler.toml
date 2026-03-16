@@ -1,20 +1,12 @@
 name = "fitness-realtors"
-type = "javascript"
+main = "worker.js"
+compatibility_date = "2026-03-16"
 
-# Replace with your actual Cloudflare account ID
-account_id = "YOUR_ACCOUNT_ID"
-
-# D1 binding
-[env.production]
-  vars = {}
+[assets]
+directory = "."
+binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "my_d1_database"
-
-[build]
-command = ""
-
-[site]
-bucket = "public"
-entry-point = "./"
+database_name = "commision-calculator"
+database_id = "55dc004d-3a29-45dc-9976-738270dd35d4"

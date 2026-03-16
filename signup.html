@@ -76,6 +76,7 @@
       </main>
     </section>
 
+    <script src="auth.js"></script>
     <script>
       // Sign-Up form logic for signup.html
       document.addEventListener('DOMContentLoaded', function () {
@@ -118,23 +119,22 @@
             }
 
             try {
-              const response = await fetch('/api/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailValue, password: passwordValue }),
+              const data = await FitnessRealtorsAuth.signup({
+                username: usernameValue,
+                email: emailValue,
+                password: passwordValue,
               });
-              const data = await response.json();
 
               if (data.success) {
                 signupError.hidden = true;
                 alert('Account created successfully! Redirecting to login...');
                 window.location.href = 'index.html';
               } else {
-                signupError.textContent = data.message;
+                signupError.textContent = data.message || 'Unable to create your account.';
                 signupError.hidden = false;
               }
             } catch (err) {
-              signupError.textContent = 'An error occurred. Please try again.';
+              signupError.textContent = 'An error occurred while creating your account. Please try again.';
               signupError.hidden = false;
             }
           });
@@ -142,5 +142,4 @@
       });
     </script>
   </body>
-</html></content>
-<parameter name="filePath">d:\projects\signup.html
+</html>

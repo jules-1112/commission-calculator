@@ -27,6 +27,10 @@ export default {
       return handleApi(request, env);
     }
 
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
     return new Response('Not Found', { status: 404 });
   },
 };
@@ -36,14 +40,7 @@ async function handleApi(request, env) {
   const method = request.method.toUpperCase();
   const path = url.pathname.replace('/api', '');
 
-  // Ensure the users table exists.
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL
-    )`
-  ).run();
+  await ensureSchema(env);
 
   if (path === '/signup' && method === 'POST') {
     return handleSignup(request, env);
@@ -58,6 +55,23 @@ async function handleApi(request, env) {
   }
 
   return json({ success: false, message: 'Endpoint not found' }, 404);
+}
+
+let schemaReadyPromise;
+
+async function ensureSchema(env) {
+  if (!schemaReadyPromise) {
+    schemaReadyPromise = env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    ).run();
+  }
+
+  return schemaReadyPromise;
 }
 
 async function handleSignup(request, env) {

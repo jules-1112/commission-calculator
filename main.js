@@ -50,12 +50,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       try {
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailValue, password: passwordValue }),
+        const data = await FitnessRealtorsAuth.login({
+          email: emailValue,
+          password: passwordValue,
         });
-        const data = await response.json();
 
         if (data.success) {
           setLoginError(false);
@@ -67,10 +65,11 @@ document.addEventListener('DOMContentLoaded', function () {
           showSection(calculatorSection);
         } else {
           setLoginError(true);
-          // Optionally, show specific message, but for now, use generic error
+          error.textContent = data.message || 'Enter a valid email and password to continue.';
         }
       } catch (err) {
         setLoginError(true);
+        error.textContent = 'Unable to sign in right now. Please try again.';
       }
 
       const savedEmail = localStorage.getItem('fr_saved_email');

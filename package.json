@@ -1,0 +1,13 @@
+{
+  "name": "fitness-realtors",
+  "version": "1.0.0",
+  "description": "Fitness Realtors authentication system with Cloudflare Workers and D1",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3"
+  }
+}

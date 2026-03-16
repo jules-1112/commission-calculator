@@ -2,6 +2,14 @@ const FitnessRealtorsAuth = (() => {
   const USERS_KEY = 'fr_users';
   const RESET_KEY = 'fr_reset_tokens';
 
+  function canUseLocalFallback() {
+    return (
+      window.location.protocol === 'file:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    );
+  }
+
   function readUsers() {
     try {
       const raw = localStorage.getItem(USERS_KEY);
@@ -59,6 +67,10 @@ const FitnessRealtorsAuth = (() => {
     try {
       return await callApi('/api/signup', { username, email, password });
     } catch (error) {
+      if (!canUseLocalFallback()) {
+        throw error;
+      }
+
       const users = readUsers();
       const normalizedEmail = email.toLowerCase();
 
@@ -87,6 +99,10 @@ const FitnessRealtorsAuth = (() => {
     try {
       return await callApi('/api/login', { email, password });
     } catch (error) {
+      if (!canUseLocalFallback()) {
+        throw error;
+      }
+
       const users = readUsers();
       const normalizedEmail = email.toLowerCase();
       const passwordHash = await hashPassword(password);
@@ -114,6 +130,10 @@ const FitnessRealtorsAuth = (() => {
     try {
       return await callApi('/api/forgot-password', { email });
     } catch (error) {
+      if (!canUseLocalFallback()) {
+        throw error;
+      }
+
       const users = readUsers();
       const normalizedEmail = email.toLowerCase();
       const exists = users.some((user) => user.email === normalizedEmail);
@@ -145,6 +165,10 @@ const FitnessRealtorsAuth = (() => {
     try {
       return await callApi('/api/reset-password', { token, password });
     } catch (error) {
+      if (!canUseLocalFallback()) {
+        throw error;
+      }
+
       const resetTokens = readResetTokens();
       const tokenEntry = resetTokens.find((entry) => entry.token === token);
 

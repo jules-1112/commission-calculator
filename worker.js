@@ -69,21 +69,34 @@ let schemaReadyPromise;
 
 async function ensureSchema(env) {
   if (!schemaReadyPromise) {
-    schemaReadyPromise = ensureUsersTable(env);
+    schemaReadyPromise = ensureDatabaseSchema(env);
   }
 
   return schemaReadyPromise;
 }
 
-async function ensureUsersTable(env) {
+async function ensureDatabaseSchema(env) {
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_login_at TEXT,
       reset_token TEXT,
       reset_token_expires_at TEXT
+    )`
+  ).run();
+
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS login_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      email TEXT NOT NULL,
+      logged_in_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      ip_address TEXT,
+      user_agent TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     )`
   ).run();
 
@@ -103,6 +116,10 @@ async function ensureUsersTable(env) {
 
   if (!columnNames.has('reset_token_expires_at')) {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT').run();
+  }
+
+  if (!columnNames.has('last_login_at')) {
+    await env.DB.prepare('ALTER TABLE users ADD COLUMN last_login_at TEXT').run();
   }
 }
 
@@ -158,6 +175,19 @@ async function handleLogin(request, env) {
     if (!passwordMatches) {
       return json({ success: false, message: 'Invalid credentials' }, 401);
     }
+
+    const ipAddress = request.headers.get('CF-Connecting-IP') || '';
+    const userAgent = request.headers.get('User-Agent') || '';
+
+    await env.DB.prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .bind(row.id)
+      .run();
+
+    await env.DB.prepare(
+      'INSERT INTO login_events (user_id, email, ip_address, user_agent) VALUES (?, ?, ?, ?)'
+    )
+      .bind(row.id, normalizedEmail, ipAddress, userAgent)
+      .run();
 
     return json({ success: true, message: 'Login successful' });
   } catch (err) {

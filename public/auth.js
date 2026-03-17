@@ -1,4 +1,11 @@
 const FitnessRealtorsAuth = (() => {
+  function getClientMetadata() {
+    return {
+      clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+    };
+  }
+
   async function parseJsonResponse(response) {
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
@@ -23,7 +30,7 @@ const FitnessRealtorsAuth = (() => {
       return callApi('/api/signup', { username, email, password });
     },
     login({ email, password }) {
-      return callApi('/api/login', { email, password });
+      return callApi('/api/login', { email, password, ...getClientMetadata() });
     },
     forgotPassword({ email }) {
       return callApi('/api/forgot-password', { email });

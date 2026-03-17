@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS login_events (
   email TEXT NOT NULL,
   logged_in_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ip_address TEXT,
+  client_timezone TEXT,
+  timezone_offset_minutes INTEGER,
   user_agent TEXT,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+

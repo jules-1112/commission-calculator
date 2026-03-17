@@ -4,8 +4,8 @@
   "description": "Commission Calculator deployed on Cloudflare Pages with D1-backed auth",
   "main": "public/_worker.js",
   "scripts": {
-    "deploy": "wrangler pages deploy public --project-name=commission-calculator",
-    "dev": "wrangler pages dev public"
+    "deploy": "npx wrangler pages deploy public --project-name=commission-calculator",
+    "dev": "npx wrangler pages dev public"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"

@@ -96,6 +96,8 @@ async function ensureDatabaseSchema(env) {
       email TEXT NOT NULL,
       logged_in_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       ip_address TEXT,
+      client_timezone TEXT,
+      timezone_offset_minutes INTEGER,
       user_agent TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )`
@@ -103,6 +105,8 @@ async function ensureDatabaseSchema(env) {
 
   const columns = await env.DB.prepare('PRAGMA table_info(users)').all();
   const columnNames = new Set((columns.results || []).map((column) => column.name));
+  const loginColumns = await env.DB.prepare('PRAGMA table_info(login_events)').all();
+  const loginColumnNames = new Set((loginColumns.results || []).map((column) => column.name));
 
   if (!columnNames.has('username')) {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN username TEXT').run();
@@ -128,6 +132,14 @@ async function ensureDatabaseSchema(env) {
 
   if (!columnNames.has('last_login_at')) {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN last_login_at TEXT').run();
+  }
+
+  if (!loginColumnNames.has('client_timezone')) {
+    await env.DB.prepare('ALTER TABLE login_events ADD COLUMN client_timezone TEXT').run();
+  }
+
+  if (!loginColumnNames.has('timezone_offset_minutes')) {
+    await env.DB.prepare('ALTER TABLE login_events ADD COLUMN timezone_offset_minutes INTEGER').run();
   }
 }
 
@@ -164,7 +176,7 @@ async function handleSignup(request, env) {
 async function handleLogin(request, env) {
   try {
     const body = await request.json();
-    const { email, password } = body ?? {};
+    const { email, password, clientTimezone, timezoneOffsetMinutes } = body ?? {};
 
     if (!email || !password) {
       return json({ success: false, message: 'Missing email or password' }, 400);
@@ -193,9 +205,16 @@ async function handleLogin(request, env) {
       .run();
 
     await env.DB.prepare(
-      'INSERT INTO login_events (user_id, email, ip_address, user_agent) VALUES (?, ?, ?, ?)'
+      'INSERT INTO login_events (user_id, email, ip_address, client_timezone, timezone_offset_minutes, user_agent) VALUES (?, ?, ?, ?, ?, ?)'
     )
-      .bind(row.id, normalizedEmail, ipAddress, userAgent)
+      .bind(
+        row.id,
+        normalizedEmail,
+        ipAddress,
+        String(clientTimezone || ''),
+        Number.isFinite(Number(timezoneOffsetMinutes)) ? Number(timezoneOffsetMinutes) : null,
+        userAgent
+      )
       .run();
 
     return json({
@@ -400,3 +419,4 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
+

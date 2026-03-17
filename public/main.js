@@ -20,14 +20,44 @@ document.addEventListener('DOMContentLoaded', function () {
     section.classList.remove('hidden');
   }
 
+  function setRoute(route, replace = false) {
+    const target = `#${route}`;
+    if (replace) {
+      window.history.replaceState(null, '', target);
+      return;
+    }
+    window.location.hash = target;
+  }
+
+  function getRoute() {
+    const raw = window.location.hash.replace('#', '').toLowerCase();
+    if (raw === 'commission' || raw === 'mortgage') {
+      return raw;
+    }
+    return 'login';
+  }
+
+  function syncSectionToRoute() {
+    const route = getRoute();
+    if (route === 'login') {
+      showSection(loginSection);
+      return;
+    }
+    showSection(calculatorSection);
+  }
+
   function setLoginError(isVisible) {
     if (!error) return;
     error.hidden = !isVisible;
   }
 
-  logoutBtn?.addEventListener('click', () => showSection(loginSection));
+  logoutBtn?.addEventListener('click', () => {
+    setRoute('login');
+    showSection(loginSection);
+  });
 
-  // Toggle password visibility for login
+  window.addEventListener('hashchange', syncSectionToRoute);
+
   if (toggle && password) {
     toggle.addEventListener('click', () => {
       const isHidden = password.type === 'password';
@@ -37,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Login form submission
   if (form && email && password && error) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -62,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             localStorage.removeItem('fr_saved_email');
           }
+          setRoute('commission');
           showSection(calculatorSection);
         } else {
           setLoginError(true);
@@ -90,10 +120,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Initially show login
-  showSection(loginSection);
+  if (!window.location.hash) {
+    setRoute('login', true);
+  }
+  syncSectionToRoute();
 });
-
 // Calculator logic from script.js
 const tierRules = [
   {
@@ -645,22 +676,48 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   `;
 
-  function showCommissionPage() {
+  function setCalculatorRoute(route, replace = false) {
+    const target = `#${route}`;
+    if (replace) {
+      window.history.replaceState(null, '', target);
+      return;
+    }
+    window.location.hash = target;
+  }
+
+  function showCommissionPage(updateRoute = true) {
     commissionPageSection.style.display = "block";
     mortgagePageSection.style.display = "none";
     showCommissionPageButton.classList.add("active");
     showMortgagePageButton.classList.remove("active");
+    if (updateRoute) {
+      setCalculatorRoute('commission');
+    }
   }
 
-  function showMortgagePage() {
+  function showMortgagePage(updateRoute = true) {
     commissionPageSection.style.display = "none";
     mortgagePageSection.style.display = "block";
     showCommissionPageButton.classList.remove("active");
     showMortgagePageButton.classList.add("active");
+    if (updateRoute) {
+      setCalculatorRoute('mortgage');
+    }
   }
 
-  showCommissionPageButton.addEventListener("click", showCommissionPage);
-  showMortgagePageButton.addEventListener("click", showMortgagePage);
+  function syncCalculatorRoute() {
+    const route = window.location.hash.replace('#', '').toLowerCase();
+    if (route === 'mortgage') {
+      showMortgagePage(false);
+      return;
+    }
+    showCommissionPage(false);
+  }
+
+  showCommissionPageButton.addEventListener("click", () => showCommissionPage(true));
+  showMortgagePageButton.addEventListener("click", () => showMortgagePage(true));
+  window.addEventListener("hashchange", syncCalculatorRoute);
+  syncCalculatorRoute();
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -819,3 +876,8 @@ document.addEventListener("DOMContentLoaded", () => {
     exportElementAsPdf(amortizationSection, "mortgage-amortization.pdf");
   });
 });
+
+
+
+
+

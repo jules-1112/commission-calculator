@@ -21,3 +21,14 @@ CREATE TABLE IF NOT EXISTS login_events (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT UNIQUE NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT NOT NULL,
+  last_seen_at TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

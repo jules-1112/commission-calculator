@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const email = document.getElementById('email');
   const remember = document.getElementById('remember');
   const error = document.getElementById('login-error');
+  const isProtectedAppRoute = window.location.pathname === '/app';
 
   function showSection(section) {
     [loginSection, calculatorSection].forEach((s) => s.classList.add('hidden'));
@@ -39,21 +40,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function syncSectionToRoute() {
     const route = getRoute();
-    if (route === 'login') {
+    if (!isProtectedAppRoute || route === 'login') {
       showSection(loginSection);
       return;
     }
     showSection(calculatorSection);
   }
 
-  function setLoginError(isVisible) {
+  function setLoginError(isVisible, message) {
     if (!error) return;
+    if (message) {
+      error.textContent = message;
+    }
     error.hidden = !isVisible;
   }
 
-  logoutBtn?.addEventListener('click', () => {
-    setRoute('login');
-    showSection(loginSection);
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      await FitnessRealtorsAuth.logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+
+    FitnessRealtorsAuth.redirectToLogin('You have been logged out.', '/app#commission');
   });
 
   window.addEventListener('hashchange', syncSectionToRoute);
@@ -74,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const passwordValue = password.value.trim();
 
       if (!emailValue || !passwordValue) {
-        setLoginError(true);
+        setLoginError(true, 'Enter a valid email and password to continue.');
         return;
       }
 
@@ -91,23 +100,12 @@ document.addEventListener('DOMContentLoaded', function () {
           } else {
             localStorage.removeItem('fr_saved_email');
           }
-          setRoute('commission');
-          showSection(calculatorSection);
+          window.location.href = FitnessRealtorsAuth.getRedirectAfterLogin();
         } else {
-          setLoginError(true);
-          error.textContent = data.message || 'Enter a valid email and password to continue.';
+          setLoginError(true, data.message || 'Enter a valid email and password to continue.');
         }
       } catch (err) {
-        setLoginError(true);
-        error.textContent = 'Unable to sign in right now. Please try again.';
-      }
-
-      const savedEmail = localStorage.getItem('fr_saved_email');
-      if (savedEmail) {
-        email.value = savedEmail;
-        if (remember) {
-          remember.checked = true;
-        }
+        setLoginError(true, 'Unable to sign in right now. Please try again.');
       }
     });
 
@@ -120,10 +118,47 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  if (!window.location.hash) {
-    setRoute('login', true);
+  async function hydrateAuthState() {
+    const authMessage = FitnessRealtorsAuth.getAuthMessage();
+    if (authMessage) {
+      setLoginError(true, authMessage);
+    }
+
+    try {
+      const session = await FitnessRealtorsAuth.getSession();
+      if (session.authenticated) {
+        const activeHash = window.location.hash || '#commission';
+
+        if (!isProtectedAppRoute) {
+          window.location.replace(`/app${activeHash}`);
+          return;
+        }
+
+        if (!window.location.hash) {
+          setRoute('commission', true);
+        }
+        showSection(calculatorSection);
+        return;
+      }
+    } catch (err) {
+      console.error('Session check failed:', err);
+    }
+
+    if (isProtectedAppRoute) {
+      FitnessRealtorsAuth.redirectToLogin(
+        FitnessRealtorsAuth.AUTH_REQUIRED_MESSAGE,
+        `${window.location.pathname}${window.location.hash}`
+      );
+      return;
+    }
+
+    if (!window.location.hash) {
+      setRoute('login', true);
+    }
+    syncSectionToRoute();
   }
-  syncSectionToRoute();
+
+  hydrateAuthState();
 });
 // Calculator logic from script.js
 const tierRules = [
@@ -876,8 +911,3 @@ document.addEventListener("DOMContentLoaded", () => {
     exportElementAsPdf(amortizationSection, "mortgage-amortization.pdf");
   });
 });
-
-
-
-
-

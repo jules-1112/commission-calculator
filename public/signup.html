@@ -123,8 +123,7 @@
 
               if (data.success) {
                 signupError.hidden = true;
-                alert('Account created successfully! Redirecting to login...');
-                window.location.href = 'index.html';
+                window.location.href = 'index.html?error=Account%20created%20successfully.%20Please%20log%20in.';
               } else {
                 signupError.textContent = data.message || 'Unable to create your account.';
                 signupError.hidden = false;
@@ -139,4 +138,3 @@
     </script>
   </body>
 </html>
-

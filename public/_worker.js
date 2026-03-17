@@ -1,30 +1,34 @@
 /**
  * Cloudflare Worker (JavaScript) that provides an API for user auth using D1.
  *
- * Requirements met:
- *   - D1 binding named "DB" (configured in wrangler.toml)
- *   - /signup, /login, /forgot-password endpoints
- *   - Passwords stored hashed (bcrypt)
- *   - Parameterized SQL queries with env.DB.prepare + bind
- *   - JSON responses + appropriate HTTP status codes
- *   - Response format: { success: true/false, message }
+ * Auth flow:
+ *   - /api/signup creates users in D1
+ *   - /api/login validates credentials, creates a D1-backed session, and sets an auth cookie
+ *   - /api/session validates the current cookie against D1 for page gating
+ *   - /api/logout deletes the session and clears the cookie
  */
 
 import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 10;
+const SESSION_COOKIE_NAME = 'fr_session';
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Allow CORS preflight
     if (request.method === 'OPTIONS') {
       return corsResponse();
     }
 
     if (url.pathname.startsWith('/api/')) {
       return handleApi(request, env);
+    }
+
+    // Serve the calculator app only when the session cookie is valid in D1.
+    if (url.pathname === '/app') {
+      return handleProtectedAppRequest(request, env, url);
     }
 
     if (env.ASSETS) {
@@ -52,6 +56,14 @@ async function handleApi(request, env) {
 
   if (path === '/login' && method === 'POST') {
     return handleLogin(request, env);
+  }
+
+  if (path === '/session' && method === 'GET') {
+    return handleSession(request, env);
+  }
+
+  if (path === '/logout' && method === 'POST') {
+    return handleLogout(request, env);
   }
 
   if (path === '/forgot-password' && method === 'POST') {
@@ -103,10 +115,26 @@ async function ensureDatabaseSchema(env) {
     )`
   ).run();
 
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token_hash TEXT UNIQUE NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      expires_at TEXT NOT NULL,
+      last_seen_at TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`
+  ).run();
+
   const columns = await env.DB.prepare('PRAGMA table_info(users)').all();
   const columnNames = new Set((columns.results || []).map((column) => column.name));
   const loginColumns = await env.DB.prepare('PRAGMA table_info(login_events)').all();
   const loginColumnNames = new Set((loginColumns.results || []).map((column) => column.name));
+  const sessionColumns = await env.DB.prepare('PRAGMA table_info(sessions)').all();
+  const sessionColumnNames = new Set((sessionColumns.results || []).map((column) => column.name));
 
   if (!columnNames.has('username')) {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN username TEXT').run();
@@ -118,7 +146,7 @@ async function ensureDatabaseSchema(env) {
   if (!columnNames.has('created_at')) {
     await env.DB.prepare('ALTER TABLE users ADD COLUMN created_at TEXT').run();
     await env.DB.prepare(
-      "UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+      'UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL'
     ).run();
   }
 
@@ -140,6 +168,18 @@ async function ensureDatabaseSchema(env) {
 
   if (!loginColumnNames.has('timezone_offset_minutes')) {
     await env.DB.prepare('ALTER TABLE login_events ADD COLUMN timezone_offset_minutes INTEGER').run();
+  }
+
+  if (!sessionColumnNames.has('last_seen_at')) {
+    await env.DB.prepare('ALTER TABLE sessions ADD COLUMN last_seen_at TEXT').run();
+  }
+
+  if (!sessionColumnNames.has('ip_address')) {
+    await env.DB.prepare('ALTER TABLE sessions ADD COLUMN ip_address TEXT').run();
+  }
+
+  if (!sessionColumnNames.has('user_agent')) {
+    await env.DB.prepare('ALTER TABLE sessions ADD COLUMN user_agent TEXT').run();
   }
 }
 
@@ -217,19 +257,75 @@ async function handleLogin(request, env) {
       )
       .run();
 
-    return json({
-      success: true,
-      message: 'Login successful',
-      user: {
-        id: row.id,
-        username: row.username,
-        email: row.email,
+    const sessionToken = await createSession(env, request, row.id);
+
+    return json(
+      {
+        success: true,
+        message: 'Login successful',
+        user: {
+          id: row.id,
+          username: row.username,
+          email: row.email,
+        },
       },
-    });
+      200,
+      {
+        'Set-Cookie': buildSessionCookie(request, sessionToken, SESSION_TTL_SECONDS),
+      }
+    );
   } catch (err) {
     console.error('Login failed:', err);
     return json({ success: false, message: 'Internal server error' }, 500);
   }
+}
+
+async function handleSession(request, env) {
+  const session = await getAuthenticatedSession(request, env);
+
+  if (!session) {
+    return json(
+      {
+        success: false,
+        authenticated: false,
+        message: 'Please sign up or log in to access this content.',
+      },
+      401,
+      {
+        'Set-Cookie': buildClearedSessionCookie(request),
+      }
+    );
+  }
+
+  return json({
+    success: true,
+    authenticated: true,
+    user: {
+      id: session.userId,
+      username: session.username,
+      email: session.email,
+    },
+  });
+}
+
+async function handleLogout(request, env) {
+  const sessionToken = getCookie(request, SESSION_COOKIE_NAME);
+
+  if (sessionToken) {
+    const tokenHash = await hashToken(sessionToken);
+    await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(tokenHash).run();
+  }
+
+  return json(
+    {
+      success: true,
+      message: 'Logged out successfully.',
+    },
+    200,
+    {
+      'Set-Cookie': buildClearedSessionCookie(request),
+    }
+  );
 }
 
 async function handleForgot(request, env) {
@@ -328,12 +424,150 @@ async function handleResetPassword(request, env) {
   }
 }
 
-function json(body, status = 200) {
+async function handleProtectedAppRequest(request, env, url) {
+  await ensureSchema(env);
+  const session = await getAuthenticatedSession(request, env);
+
+  if (!session) {
+    const redirectUrl = new URL('/index.html', url.origin);
+    redirectUrl.searchParams.set('error', 'auth_required');
+    redirectUrl.searchParams.set('next', '/app');
+    return Response.redirect(redirectUrl.toString(), 302);
+  }
+
+  if (env.ASSETS) {
+    const assetUrl = new URL('/index.html', url.origin);
+    return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+  }
+
+  return new Response('Not Found', { status: 404 });
+}
+
+async function createSession(env, request, userId) {
+  const sessionToken = crypto.randomUUID();
+  const tokenHash = await hashToken(sessionToken);
+  const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString();
+  const ipAddress = request.headers.get('CF-Connecting-IP') || '';
+  const userAgent = request.headers.get('User-Agent') || '';
+
+  await env.DB.prepare(
+    'INSERT INTO sessions (user_id, token_hash, expires_at, last_seen_at, ip_address, user_agent) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)'
+  )
+    .bind(userId, tokenHash, expiresAt, ipAddress, userAgent)
+    .run();
+
+  return sessionToken;
+}
+
+async function getAuthenticatedSession(request, env) {
+  const sessionToken = getCookie(request, SESSION_COOKIE_NAME);
+  if (!sessionToken) {
+    return null;
+  }
+
+  const tokenHash = await hashToken(sessionToken);
+  const row = await env.DB.prepare(
+    `SELECT
+      sessions.id AS session_id,
+      sessions.expires_at AS expires_at,
+      users.id AS user_id,
+      users.username AS username,
+      users.email AS email
+    FROM sessions
+    INNER JOIN users ON users.id = sessions.user_id
+    WHERE sessions.token_hash = ?`
+  )
+    .bind(tokenHash)
+    .first();
+
+  if (!row) {
+    return null;
+  }
+
+  const expiresAt = Date.parse(row.expires_at || '');
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    await env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(row.session_id).run();
+    return null;
+  }
+
+  await env.DB.prepare('UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .bind(row.session_id)
+    .run();
+
+  return {
+    sessionId: row.session_id,
+    userId: row.user_id,
+    username: row.username,
+    email: row.email,
+  };
+}
+
+async function hashToken(token) {
+  const value = new TextEncoder().encode(String(token));
+  const digest = await crypto.subtle.digest('SHA-256', value);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function getCookie(request, name) {
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const cookies = cookieHeader.split(';');
+
+  for (const cookie of cookies) {
+    const [rawName, ...rawValueParts] = cookie.trim().split('=');
+    if (rawName === name) {
+      return decodeURIComponent(rawValueParts.join('='));
+    }
+  }
+
+  return '';
+}
+
+function buildSessionCookie(request, token, maxAgeSeconds) {
+  const cookieParts = [
+    `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    `Max-Age=${maxAgeSeconds}`,
+  ];
+
+  if (shouldUseSecureCookies(request)) {
+    cookieParts.push('Secure');
+  }
+
+  return cookieParts.join('; ');
+}
+
+function buildClearedSessionCookie(request) {
+  const cookieParts = [
+    `${SESSION_COOKIE_NAME}=`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Lax',
+    'Max-Age=0',
+  ];
+
+  if (shouldUseSecureCookies(request)) {
+    cookieParts.push('Secure');
+  }
+
+  return cookieParts.join('; ');
+}
+
+function shouldUseSecureCookies(request) {
+  const url = new URL(request.url);
+  const host = url.hostname;
+  const isLocalHost = host === '127.0.0.1' || host === 'localhost';
+  return url.protocol === 'https:' && !isLocalHost;
+}
+
+function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       'Content-Type': 'application/json',
       ...corsHeaders(),
+      ...extraHeaders,
     },
   });
 }
@@ -419,4 +653,3 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
-

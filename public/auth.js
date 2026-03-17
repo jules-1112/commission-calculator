@@ -36,7 +36,7 @@ const FitnessRealtorsAuth = (() => {
   }
 
   function buildLoginUrl(message, nextPath) {
-    const target = new URL('/index.html', window.location.origin);
+    const target = new URL('/login', window.location.origin);
 
     if (message) {
       target.searchParams.set('error', message);

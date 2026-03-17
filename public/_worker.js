@@ -26,6 +26,11 @@ export default {
       return handleApi(request, env);
     }
 
+    const staticRoute = getStaticPageRoute(url.pathname);
+    if (staticRoute) {
+      return serveStaticPage(request, env, url, staticRoute);
+    }
+
     // Serve the calculator app only when the session cookie is valid in D1.
     if (url.pathname === '/app') {
       return handleProtectedAppRequest(request, env, url);
@@ -38,6 +43,26 @@ export default {
     return new Response('Not Found', { status: 404 });
   },
 };
+
+function getStaticPageRoute(pathname) {
+  const routes = {
+    '/login': '/',
+    '/signup': '/signup',
+    '/forgot': '/forgot',
+    '/reset': '/reset',
+  };
+
+  return routes[pathname] || '';
+}
+
+async function serveStaticPage(request, env, url, assetPath) {
+  if (!env.ASSETS) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  const assetUrl = new URL(assetPath, url.origin);
+  return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+}
 
 async function handleApi(request, env) {
   const url = new URL(request.url);
@@ -357,7 +382,7 @@ async function handleForgot(request, env) {
       .run();
 
     const url = new URL(request.url);
-    const resetLink = `${url.origin}/reset.html?token=${encodeURIComponent(resetToken)}`;
+    const resetLink = `${url.origin}/reset?token=${encodeURIComponent(resetToken)}`;
 
     const emailResult = await sendResetEmail({
       apiKey: env.RESEND_API_KEY,
@@ -429,14 +454,14 @@ async function handleProtectedAppRequest(request, env, url) {
   const session = await getAuthenticatedSession(request, env);
 
   if (!session) {
-    const redirectUrl = new URL('/index.html', url.origin);
+    const redirectUrl = new URL('/login', url.origin);
     redirectUrl.searchParams.set('error', 'auth_required');
     redirectUrl.searchParams.set('next', '/app');
     return Response.redirect(redirectUrl.toString(), 302);
   }
 
   if (env.ASSETS) {
-    const assetUrl = new URL('/index.html', url.origin);
+    const assetUrl = new URL('/', url.origin);
     return env.ASSETS.fetch(new Request(assetUrl.toString(), request));
   }
 
@@ -653,3 +678,4 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 }
+

@@ -120,6 +120,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function hydrateAuthState() {
     const authMessage = FitnessRealtorsAuth.getAuthMessage();
+    const activeRoute = getRoute();
+    const legacyProtectedTarget =
+      !isProtectedAppRoute && activeRoute !== 'login' ? `/app#${activeRoute}` : '';
+
     if (authMessage) {
       setLoginError(true, authMessage);
     }
@@ -142,6 +146,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     } catch (err) {
       console.error('Session check failed:', err);
+    }
+
+    if (legacyProtectedTarget) {
+      FitnessRealtorsAuth.redirectToLogin(
+        FitnessRealtorsAuth.AUTH_REQUIRED_MESSAGE,
+        legacyProtectedTarget
+      );
+      return;
     }
 
     if (isProtectedAppRoute) {

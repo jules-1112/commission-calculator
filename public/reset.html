@@ -48,7 +48,7 @@
             <button class="sign-up-btn" type="submit">Reset Password</button>
             <p id="reset-error" class="signup-error" hidden></p>
           </form>
-          <p class="switch-link"><a href="index.html">Back to login</a></p>
+          <p class="switch-link"><a href="/login">Back to login</a></p>
         </section>
       </main>
     </section>
@@ -95,7 +95,7 @@
             if (data.success) {
               resetError.hidden = true;
               alert('Password updated successfully. Please sign in.');
-              window.location.href = 'index.html';
+              window.location.href = '/login';
               return;
             }
 

@@ -1,12 +1,11 @@
 {
-  "name": "fitness-realtors",
+  "name": "commission-calculator-pages",
   "version": "1.0.0",
-  "description": "Fitness Realtors authentication system with Cloudflare Workers and D1",
-  "main": "worker.js",
+  "description": "Commission Calculator deployed on Cloudflare Pages with D1-backed auth",
+  "main": "public/_worker.js",
   "scripts": {
-    "sync:public": "powershell -ExecutionPolicy Bypass -File ./sync-public.ps1",
-    "deploy": "npm run sync:public && wrangler deploy",
-    "dev": "npm run sync:public && wrangler dev"
+    "deploy": "wrangler pages deploy public --project-name=commission-calculator",
+    "dev": "wrangler pages dev public"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"

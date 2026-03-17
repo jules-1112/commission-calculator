@@ -26,6 +26,11 @@ export default {
       return handleApi(request, env);
     }
 
+    if (url.pathname === '/') {
+      return handleRootRequest(request, env, url);
+    }
+
+
     const staticRoute = getStaticPageRoute(url.pathname);
     if (staticRoute) {
       return serveStaticPage(request, env, url, staticRoute);
@@ -43,6 +48,13 @@ export default {
     return new Response('Not Found', { status: 404 });
   },
 };
+
+async function handleRootRequest(request, env, url) {
+  await ensureSchema(env);
+  const session = await getAuthenticatedSession(request, env);
+  const destination = session ? '/app#commission' : '/login';
+  return Response.redirect(new URL(destination, url.origin).toString(), 302);
+}
 
 function getStaticPageRoute(pathname) {
   const routes = {
